@@ -2,25 +2,10 @@
 
 const express = require('express');
 const db = require('../db');
+const windowService = require('../services/windowService');
 const { requireLogin } = require('../middleware/auth');
 
 const router = express.Router();
-
-function getCurrentSemester() {
-  return db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
-}
-
-function windowState(semester) {
-  if (!semester || !semester.select_open_at || !semester.select_close_at) {
-    return { open: false, label: '未配置选课窗口' };
-  }
-  const now = Date.now();
-  const start = new Date(semester.select_open_at.replace(' ', 'T')).getTime();
-  const end = new Date(semester.select_close_at.replace(' ', 'T')).getTime();
-  if (now < start) return { open: false, label: '选课尚未开始' };
-  if (now > end) return { open: false, label: '选课已截止' };
-  return { open: true, label: '选课开放中' };
-}
 
 function buildStats(user) {
   if (!user) return null;
@@ -67,7 +52,7 @@ function buildStats(user) {
 }
 
 router.get('/', requireLogin, (req, res) => {
-  const semester = getCurrentSemester();
+  const semester = windowService.getCurrentSemester();
   const announcements = db.all(
     `SELECT a.*, u.name AS author_name
        FROM announcement a JOIN user u ON u.id = a.author_id
@@ -79,7 +64,7 @@ router.get('/', requireLogin, (req, res) => {
     title: '首页',
     semester,
     announcements,
-    windowState: windowState(semester),
+    windowState: windowService.getWindowState(semester),
     stats: buildStats(req.user)
   });
 });

@@ -41,6 +41,7 @@ router.get('/', (req, res) => {
     courses: data.courses,
     filters: data.filters,
     query,
+    backPath: req.originalUrl,
     fmt: format
   });
 });
@@ -59,6 +60,7 @@ router.get('/:id', (req, res, next) => {
   return res.render('course_detail', {
     title: course.name,
     course,
+    backPath: req.originalUrl,
     fmt: format
   });
 });

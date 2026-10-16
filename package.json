@@ -8,7 +8,9 @@
     "start": "node src/server.js",
     "init-db": "node src/db/seed.js",
     "reset-db": "node src/db/seed.js --reset",
-    "smoke": "bash test/smoke.sh"
+    "smoke": "bash test/smoke.sh",
+    "stress": "node test/stress-test.js",
+    "test:conflict": "node test/conflict-test.js"
   },
   "engines": {
     "node": ">=20"

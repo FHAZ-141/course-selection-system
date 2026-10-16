@@ -14,31 +14,10 @@
  */
 
 const db = require('../db');
+const classTimeService = require('./classTimeService');
 
 function getCurrentSemester() {
   return db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
-}
-
-/**
- * 批量取多门课的上课时间，按 course_id 分组
- * @returns {Map<number, object[]>}
- */
-function loadClassTimes(courseIds) {
-  const grouped = new Map();
-  if (courseIds.length === 0) return grouped;
-
-  const placeholders = courseIds.map(() => '?').join(', ');
-  const rows = db.all(
-    `SELECT * FROM class_time
-      WHERE course_id IN (${placeholders})
-      ORDER BY course_id, day_of_week, start_period`,
-    ...courseIds
-  );
-  for (const row of rows) {
-    if (!grouped.has(row.course_id)) grouped.set(row.course_id, []);
-    grouped.get(row.course_id).push(row);
-  }
-  return grouped;
 }
 
 /**
@@ -150,7 +129,11 @@ function listCourses(options = {}) {
   );
 
   const ids = rows.map((r) => r.id);
-  const courses = decorate(rows, loadClassTimes(ids), loadMyStatus(options.studentId, ids));
+  const courses = decorate(
+    rows,
+    classTimeService.loadByCourseIds(ids),
+    loadMyStatus(options.studentId, ids)
+  );
 
   return {
     semester,
@@ -181,7 +164,11 @@ function getCourseDetail(courseId, studentId) {
   const row = db.get(`${BASE_SELECT} WHERE c.id = ?`, id);
   if (!row) return null;
 
-  const [course] = decorate([row], loadClassTimes([id]), loadMyStatus(studentId, [id]));
+  const [course] = decorate(
+    [row],
+    classTimeService.loadByCourseIds([id]),
+    loadMyStatus(studentId, [id])
+  );
   return course;
 }
 
@@ -189,7 +176,5 @@ module.exports = {
   getCurrentSemester,
   listCourses,
   getCourseDetail,
-  // 供其他模块复用
-  loadClassTimes,
   decorate
 };

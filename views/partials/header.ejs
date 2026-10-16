@@ -45,3 +45,6 @@
   </div>
 </header>
 <main class="container">
+  <% if (typeof flash !== 'undefined' && flash) { %>
+    <div class="alert <%= flash.type === 'ok' ? 'alert-ok' : 'alert-error' %>"><%= flash.message %></div>
+  <% } %>

@@ -467,3 +467,27 @@ input:focus, select:focus, textarea:focus {
 }
 
 .back-link { margin-top: 18px; font-size: 13px; }
+
+/* ============================================================
+   选课与退课模块
+   ============================================================ */
+
+.panel-gap { margin-top: 16px; }
+
+.col-actions { white-space: nowrap; }
+
+.inline-form { display: inline-block; margin-left: 6px; }
+
+.action-row { margin-top: 4px; }
+.action-row .inline-form:first-child { margin-left: 0; }
+
+.btn-danger {
+  background: var(--danger-soft);
+  border-color: #f0c2be;
+  color: var(--danger);
+}
+.btn-danger:hover { background: #fbdad7; border-color: var(--danger); color: var(--danger); }
+
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.alert-ok { background: var(--ok-soft); color: var(--ok); }

@@ -115,7 +115,16 @@
                 <div class="cell-sub"><span class="badge badge-student"><%= fmt.enrollmentStatusLabel(c.my_status) %></span></div>
               <% } %>
             </td>
-            <td><a class="btn btn-sm" href="/courses/<%= c.id %>">详情</a></td>
+            <td class="col-actions">
+              <a class="btn btn-sm" href="/courses/<%= c.id %>">详情</a>
+              <% if (currentUser.role === 'student' && !c.my_status && c.status === 'open') { %>
+                <form method="post" action="/enrollments" class="inline-form">
+                  <input type="hidden" name="courseId" value="<%= c.id %>">
+                  <input type="hidden" name="back" value="<%= backPath %>">
+                  <button type="submit" class="btn btn-sm btn-primary"><%= c.isFull ? '加入候补' : '选课' %></button>
+                </form>
+              <% } %>
+            </td>
           </tr>
         <% }); %>
       </tbody>

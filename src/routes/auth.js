@@ -3,15 +3,9 @@
 const express = require('express');
 const db = require('../db');
 const { verifyPassword } = require('../utils/password');
+const { safeInternalPath } = require('../utils/url');
 
 const router = express.Router();
-
-/** 只允许跳回站内路径，避免开放重定向 */
-function safeNext(next) {
-  if (typeof next !== 'string') return '/';
-  if (!next.startsWith('/') || next.startsWith('//')) return '/';
-  return next;
-}
 
 router.get('/login', (req, res) => {
   if (req.user) return res.redirect('/');
@@ -19,14 +13,14 @@ router.get('/login', (req, res) => {
     title: '登录',
     error: null,
     username: '',
-    next: safeNext(req.query.next)
+    next: safeInternalPath(req.query.next, '/')
   });
 });
 
 router.post('/login', (req, res) => {
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
-  const next = safeNext(req.body.next);
+  const next = safeInternalPath(req.body.next, '/');
 
   const user = db.get('SELECT * FROM user WHERE username = ?', username);
 

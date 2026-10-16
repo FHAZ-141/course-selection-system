@@ -83,9 +83,32 @@
       <div class="note note-warn">名额已满，选课时将进入候补队列。</div>
     <% } %>
 
-    <p class="placeholder-note">
-      选课与退课操作将在下一模块开放 —— 见 <code>docs/dev/modules/选课与退课.md</code>。
-    </p>
+    <% if (currentUser.role === 'student') { %>
+      <div class="action-row">
+        <% if (course.my_status === 'enrolled') { %>
+          <form method="post" action="/enrollments/<%= course.id %>/drop" class="inline-form"
+                onsubmit="return confirm('确定退选「<%= course.name %>」吗？退课后名额将让给候补队列中的同学。');">
+            <input type="hidden" name="back" value="<%= backPath %>">
+            <button type="submit" class="btn btn-danger">退课</button>
+          </form>
+        <% } else if (course.my_status === 'waiting') { %>
+          <form method="post" action="/enrollments/<%= course.id %>/waitlist/cancel" class="inline-form">
+            <input type="hidden" name="back" value="<%= backPath %>">
+            <button type="submit" class="btn">退出候补队列</button>
+          </form>
+        <% } else if (course.status === 'open') { %>
+          <form method="post" action="/enrollments" class="inline-form">
+            <input type="hidden" name="courseId" value="<%= course.id %>">
+            <input type="hidden" name="back" value="<%= backPath %>">
+            <button type="submit" class="btn btn-primary"><%= course.isFull ? '加入候补队列' : '选课' %></button>
+          </form>
+        <% } else { %>
+          <span class="muted">该课程已停开，无法选课。</span>
+        <% } %>
+      </div>
+    <% } else { %>
+      <p class="placeholder-note">选课与退课仅对学生开放。</p>
+    <% } %>
   </section>
 </div>
 
