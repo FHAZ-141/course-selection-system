@@ -1,0 +1,44 @@
+# 依赖目录
+node_modules/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+
+# 构建产物
+dist/
+build/
+out/
+*.egg-info/
+
+# 数据库文件（本地开发数据不入库）
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# 日志与临时文件
+*.log
+logs/
+tmp/
+temp/
+.cache/
+
+# 环境变量与密钥（切勿提交）
+.env
+.env.*
+!.env.example
+*.pem
+
+# IDE / 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*.suo
+*.user
+
+# 操作系统
+.DS_Store
+Thumbs.db
+desktop.ini

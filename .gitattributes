@@ -1,0 +1,26 @@
+# 行尾统一：交由 Git 按平台自动处理，避免 CRLF / LF 噪声
+* text=auto
+
+# 文本文件显式声明
+*.md   text
+*.json text
+*.js   text
+*.css  text
+*.html text
+*.py   text
+*.sql  text
+
+# 二进制文件不做转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.svg  text
+*.pdf  binary
+*.woff binary
+*.woff2 binary
+*.ttf  binary
+
+# 语言统计时排除
+docs/**/*.pdf linguist-documentation
