@@ -1,0 +1,91 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">你好，<%= currentUser.name %></h1>
+    <p class="page-sub">
+      <% if (semester) { %>
+        <span><%= semester.name %></span>
+        <span class="dot">·</span>
+        <span class="muted">共 <%= semester.total_weeks %> 周</span>
+      <% } else { %>
+        <span class="muted">尚未配置学期</span>
+      <% } %>
+    </p>
+  </div>
+  <span class="badge <%= windowState.open ? 'badge-ok' : 'badge-warn' %> badge-lg"><%= windowState.label %></span>
+</div>
+
+<% if (stats) { %>
+<div class="stat-grid">
+  <% stats.forEach(function (item) { %>
+    <div class="stat-card">
+      <div class="stat-label"><%= item.label %></div>
+      <div class="stat-value"><%= item.value %></div>
+    </div>
+  <% }); %>
+</div>
+<% } %>
+
+<div class="columns">
+  <section class="panel">
+    <h2 class="panel-title">快捷入口</h2>
+    <div class="quick-links">
+      <a class="quick-link" href="/courses">
+        <span class="quick-name">课程查询</span>
+        <span class="quick-desc">检索课程、查看容量与已选人数</span>
+      </a>
+
+      <% if (currentUser.role === 'student') { %>
+        <a class="quick-link" href="/enrollments/my">
+          <span class="quick-name">我的选课</span>
+          <span class="quick-desc">查看已选课程、候补队列与选课状态</span>
+        </a>
+      <% } %>
+
+      <% if (currentUser.role === 'teacher') { %>
+        <a class="quick-link" href="/teacher/courses">
+          <span class="quick-name">我的课程</span>
+          <span class="quick-desc">查看所授课程与选课名单</span>
+        </a>
+      <% } %>
+
+      <% if (currentUser.role === 'admin') { %>
+        <a class="quick-link" href="/admin/courses">
+          <span class="quick-name">课程管理</span>
+          <span class="quick-desc">增删改课程、设置容量与上课时间</span>
+        </a>
+        <a class="quick-link" href="/admin/semester">
+          <span class="quick-name">选课窗口</span>
+          <span class="quick-desc">配置选课开放与截止时间</span>
+        </a>
+      <% } %>
+
+      <a class="quick-link" href="/announcements">
+        <span class="quick-name">公告通知</span>
+        <span class="quick-desc">查看选课相关通知</span>
+      </a>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">最新公告</h2>
+    <% if (announcements.length === 0) { %>
+      <p class="empty">暂无公告</p>
+    <% } else { %>
+      <ul class="announce-list">
+        <% announcements.forEach(function (item) { %>
+          <li>
+            <a href="/announcements/<%= item.id %>">
+              <% if (item.pinned) { %><span class="tag tag-pin">置顶</span><% } %>
+              <%= item.title %>
+            </a>
+            <div class="announce-meta"><%= item.author_name %> · <%= item.created_at %></div>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </section>
+</div>
+
+<%- include('partials/footer') %>

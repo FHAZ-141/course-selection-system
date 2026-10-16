@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · <%= appName %></title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="/">
+      <span class="brand-mark">选</span>
+      <span><%= appName %></span>
+    </a>
+
+    <% if (currentUser) { %>
+      <nav class="nav">
+        <a href="/" class="<%= activePath === '/' ? 'active' : '' %>">首页</a>
+        <a href="/courses" class="<%= activePath.startsWith('/courses') ? 'active' : '' %>">课程查询</a>
+        <% if (currentUser.role === 'student') { %>
+          <a href="/enrollments/my" class="<%= activePath.startsWith('/enrollments') ? 'active' : '' %>">我的选课</a>
+        <% } %>
+        <% if (currentUser.role === 'teacher') { %>
+          <a href="/teacher" class="<%= activePath.startsWith('/teacher') ? 'active' : '' %>">教师端</a>
+        <% } %>
+        <% if (currentUser.role === 'admin') { %>
+          <a href="/admin" class="<%= activePath.startsWith('/admin') ? 'active' : '' %>">管理后台</a>
+        <% } %>
+        <a href="/announcements" class="<%= activePath.startsWith('/announcements') ? 'active' : '' %>">公告</a>
+      </nav>
+
+      <div class="userbox">
+        <span class="uname"><%= currentUser.name %></span>
+        <span class="badge badge-<%= currentUser.role %>"><%= roles[currentUser.role] %></span>
+        <form method="post" action="/logout">
+          <button type="submit" class="btn-link">退出</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="userbox">
+        <a class="btn btn-primary btn-sm" href="/login">登录</a>
+      </div>
+    <% } %>
+  </div>
+</header>
+<main class="container">

@@ -11,11 +11,15 @@ build/
 out/
 *.egg-info/
 
-# 数据库文件（本地开发数据不入库）
+# 数据库文件（本地开发数据不入库，由 npm run init-db 生成）
+data/
 *.db
 *.sqlite
 *.sqlite3
 *.db-journal
+*.sqlite.lock
+*.sqlite-wal
+*.sqlite-shm
 
 # 日志与临时文件
 *.log

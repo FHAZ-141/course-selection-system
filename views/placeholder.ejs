@@ -1,0 +1,35 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= title %></h1>
+    <p class="page-sub"><span class="muted">模块骨架已就位，业务逻辑将在 v0.2.0 实现</span></p>
+  </div>
+</div>
+
+<section class="panel">
+  <h2 class="panel-title">计划实现的接口</h2>
+  <p class="panel-note">
+    v0.1.0 先固定 URL 结构与模块边界；下表为本模块已登记的接口清单，对应需求确认清单中的条目。
+  </p>
+  <table class="table">
+    <thead>
+      <tr>
+        <th class="col-method">方法</th>
+        <th class="col-path">路径</th>
+        <th>说明</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% endpoints.forEach(function (row) { %>
+        <tr>
+          <td><span class="method method-<%= row[0].toLowerCase().replace('|', '-') %>"><%= row[0] %></span></td>
+          <td><code><%= row[1] %></code></td>
+          <td class="muted"><%= row[2] %></td>
+        </tr>
+      <% }); %>
+    </tbody>
+  </table>
+</section>
+
+<%- include('partials/footer') %>

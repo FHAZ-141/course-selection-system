@@ -1,0 +1,44 @@
+<%- include('partials/header') %>
+
+<div class="login-wrap">
+  <div class="login-card">
+    <h1 class="login-title">登录<%= appName %></h1>
+    <p class="login-sub">请使用学号 / 工号登录</p>
+
+    <% if (error) { %>
+      <div class="alert alert-error"><%= error %></div>
+    <% } %>
+
+    <form method="post" action="/login" class="form">
+      <input type="hidden" name="next" value="<%= next %>">
+
+      <label class="field">
+        <span class="field-label">学号 / 工号</span>
+        <input type="text" name="username" value="<%= username %>" autocomplete="username" autofocus required>
+      </label>
+
+      <label class="field">
+        <span class="field-label">密码</span>
+        <input type="password" name="password" autocomplete="current-password" required>
+      </label>
+
+      <button type="submit" class="btn btn-primary btn-block">登录</button>
+    </form>
+
+    <div class="demo-accounts">
+      <div class="demo-title">演示账号（密码均为 123456）</div>
+      <table class="table table-compact">
+        <thead>
+          <tr><th>角色</th><th>账号</th><th>姓名</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>管理员</td><td><code>admin</code></td><td>系统管理员</td></tr>
+          <tr><td>教师</td><td><code>T1001</code></td><td>张伟</td></tr>
+          <tr><td>学生</td><td><code>2024010101</code></td><td>陈思远</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<%- include('partials/footer') %>
