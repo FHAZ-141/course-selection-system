@@ -10,7 +10,7 @@
 
 | 模块文档 | 对应需求 | 涉及文件 | 状态 |
 | --- | --- | --- | --- |
-| [课程查询](课程查询.md) | F1 | `src/services/courseService.js`、`src/routes/courses.js`、`views/course_list.ejs` 等 | 待产出 |
+| [课程查询](课程查询.md) | F1 | `src/services/courseService.js`、`src/routes/courses.js`、`src/utils/format.js`、`views/course_list.ejs`、`views/course_detail.ejs` | ✅ 已产出 |
 | 选课与退课 | F2 F3 B4 R9 | `src/services/enrollmentService.js`、`src/routes/enrollments.js` | 待产出 |
 | 时间冲突检查 | C1 C2 C3 R4 | `src/services/conflictService.js` | 待产出 |
 | 选课窗口 | B2 B3 | `src/services/windowService.js` | 待产出 |

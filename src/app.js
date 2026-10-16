@@ -44,10 +44,19 @@ app.use((req, res) => {
 
 // 统一错误处理
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
-  console.error('[error]', err);
-  res.status(err.status || 500).render('error', {
-    title: '服务器错误',
-    code: err.status || 500,
+  const status = err.status || 500;
+
+  if (status >= 500) {
+    // 服务端异常：需要完整堆栈，便于排查
+    console.error('[error]', req.method, req.originalUrl, err);
+  } else {
+    // 4xx 属于正常的客户端错误（如访问不存在的课程），只记录一行即可
+    console.warn('[warn]', req.method, req.originalUrl, `-> ${status}`, err.message);
+  }
+
+  res.status(status).render('error', {
+    title: status >= 500 ? '服务器错误' : '请求有误',
+    code: status,
     message: err.message || '服务器内部错误'
   });
 });

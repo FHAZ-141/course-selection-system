@@ -1,0 +1,126 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">课程查询</h1>
+    <p class="page-sub">
+      <% if (semester) { %>
+        <span><%= semester.name %></span>
+        <span class="dot">·</span>
+        <span class="muted">共 <%= courses.length %> 门课程</span>
+      <% } else { %>
+        <span class="muted">尚未配置学期</span>
+      <% } %>
+    </p>
+  </div>
+</div>
+
+<section class="panel">
+  <form method="get" action="/courses" class="filter-bar">
+    <label class="filter-item filter-grow">
+      <span class="field-label">课程名 / 课程代码</span>
+      <input type="text" name="keyword" value="<%= query.keyword %>" placeholder="如：数据结构 或 CS102">
+    </label>
+
+    <label class="filter-item">
+      <span class="field-label">开课院系</span>
+      <select name="department">
+        <option value="">全部院系</option>
+        <% filters.departments.forEach(function (d) { %>
+          <option value="<%= d %>" <%= query.department === d ? 'selected' : '' %>><%= d %></option>
+        <% }); %>
+      </select>
+    </label>
+
+    <label class="filter-item">
+      <span class="field-label">授课教师</span>
+      <select name="teacherId">
+        <option value="">全部教师</option>
+        <% filters.teachers.forEach(function (t) { %>
+          <option value="<%= t.id %>" <%= String(query.teacherId) === String(t.id) ? 'selected' : '' %>><%= t.name %></option>
+        <% }); %>
+      </select>
+    </label>
+
+    <label class="filter-item">
+      <span class="field-label">上课星期</span>
+      <select name="dayOfWeek">
+        <option value="">不限</option>
+        <% for (let d = 1; d <= 7; d++) { %>
+          <option value="<%= d %>" <%= String(query.dayOfWeek) === String(d) ? 'selected' : '' %>><%= fmt.DAY_NAMES[d] %></option>
+        <% } %>
+      </select>
+    </label>
+
+    <div class="filter-actions">
+      <button type="submit" class="btn btn-primary">查询</button>
+      <a class="btn" href="/courses">重置</a>
+    </div>
+  </form>
+</section>
+
+<% if (courses.length === 0) { %>
+  <section class="panel">
+    <p class="empty">没有符合条件的课程，换个条件试试。</p>
+  </section>
+<% } else { %>
+  <section class="panel">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>课程代码</th>
+          <th>课程名</th>
+          <th>教师</th>
+          <th>学分</th>
+          <th>上课时间</th>
+          <th class="col-num">容量 / 已选</th>
+          <th>状态</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% courses.forEach(function (c) { %>
+          <tr>
+            <td><code><%= c.code %></code></td>
+            <td>
+              <a href="/courses/<%= c.id %>" class="strong-link"><%= c.name %></a>
+              <% if (c.department) { %><div class="cell-sub"><%= c.department %></div><% } %>
+            </td>
+            <td><%= c.teacher_name %></td>
+            <td><%= fmt.credits(c.credits) %></td>
+            <td>
+              <% if (c.class_times.length === 0) { %>
+                <span class="muted">未排课</span>
+              <% } else { %>
+                <% c.class_times.forEach(function (ct) { %>
+                  <div class="cell-line"><%= fmt.describeClassTime(ct) %></div>
+                <% }); %>
+              <% } %>
+            </td>
+            <td class="col-num">
+              <span class="<%= c.isFull ? 'text-danger' : '' %>"><%= c.enrolled_count %> / <%= c.capacity %></span>
+              <% if (c.waitlist_count > 0) { %>
+                <div class="cell-sub">候补 <%= c.waitlist_count %> 人</div>
+              <% } %>
+            </td>
+            <td>
+              <% if (c.status === 'closed') { %>
+                <span class="badge badge-warn">停开</span>
+              <% } else if (c.isFull) { %>
+                <span class="badge badge-warn">已满</span>
+              <% } else { %>
+                <span class="badge badge-ok">可报名</span>
+              <% } %>
+              <% if (c.my_status) { %>
+                <div class="cell-sub"><span class="badge badge-student"><%= fmt.enrollmentStatusLabel(c.my_status) %></span></div>
+              <% } %>
+            </td>
+            <td><a class="btn btn-sm" href="/courses/<%= c.id %>">详情</a></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  </section>
+<% } %>
+
+<%- include('partials/footer') %>

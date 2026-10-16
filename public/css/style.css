@@ -383,3 +383,87 @@ input:focus, select:focus, textarea:focus {
   font-size: 12.5px;
   color: var(--text-faint);
 }
+
+/* ============================================================
+   课程查询模块
+   ============================================================ */
+
+/* ---------- 筛选栏 ---------- */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.filter-item { display: flex; flex-direction: column; gap: 6px; }
+.filter-item select { min-width: 130px; }
+.filter-grow { flex: 1 1 220px; }
+.filter-actions { display: flex; gap: 8px; margin-left: auto; }
+
+/* ---------- 表格单元格辅助 ---------- */
+.col-num { width: 120px; white-space: nowrap; }
+.cell-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.cell-line { font-size: 12.5px; color: var(--text-muted); }
+.cell-line + .cell-line { margin-top: 1px; }
+
+.strong-link { color: var(--text); font-weight: 500; }
+.strong-link:hover { color: var(--primary); }
+
+.text-danger { color: var(--danger); font-weight: 500; }
+.text-ok { color: var(--ok); font-weight: 500; }
+
+/* ---------- 详情页 ---------- */
+.title-code { margin-left: 8px; font-size: 13px; vertical-align: middle; }
+.head-actions { display: flex; gap: 8px; align-items: center; }
+.panel-title-gap { margin-top: 20px; }
+
+.plain-list { margin: 0; padding-left: 18px; }
+.plain-list li { margin-bottom: 4px; }
+
+.capacity-block { margin-bottom: 16px; }
+.capacity-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.capacity-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: #eef0f3;
+  overflow: hidden;
+}
+.capacity-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 999px;
+}
+.capacity-fill.is-full { background: var(--danger); }
+
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 16px;
+  margin: 0 0 16px;
+  font-size: 13px;
+}
+.kv dt { color: var(--text-muted); }
+.kv dd { margin: 0; }
+
+.note {
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+.note-ok { background: var(--ok-soft); color: var(--ok); }
+.note-warn { background: var(--warn-soft); color: var(--warn); }
+
+.placeholder-note {
+  font-size: 12.5px;
+  color: var(--text-faint);
+  margin: 0;
+}
+
+.back-link { margin-top: 18px; font-size: 13px; }
