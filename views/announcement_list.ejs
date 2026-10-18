@@ -1,0 +1,33 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= title %></h1>
+    <p class="page-sub"><span class="muted">共 <%= announcements.length %> 条</span></p>
+  </div>
+  <% if (currentUser.role === 'admin') { %>
+    <div class="head-actions">
+      <a class="btn btn-primary btn-sm" href="/admin/announcements">管理公告</a>
+    </div>
+  <% } %>
+</div>
+
+<section class="panel">
+  <% if (announcements.length === 0) { %>
+    <p class="empty">暂无公告。</p>
+  <% } else { %>
+    <ul class="announce-list announce-list-lg">
+      <% announcements.forEach(function (item) { %>
+        <li>
+          <a href="/announcements/<%= item.id %>">
+            <% if (item.pinned) { %><span class="tag tag-pin">置顶</span><% } %>
+            <%= item.title %>
+          </a>
+          <div class="announce-meta"><%= item.author_name %> · <%= fmt.dateTime(item.created_at) %></div>
+        </li>
+      <% }); %>
+    </ul>
+  <% } %>
+</section>
+
+<%- include('partials/footer') %>

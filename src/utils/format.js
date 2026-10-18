@@ -90,6 +90,18 @@ function truncate(text, max = 60) {
   return str.length > max ? `${str.slice(0, max)}…` : str;
 }
 
+/** 时间显示到分钟：2026-10-16 17:02:33 → 2026-10-16 17:02 */
+function dateTime(value) {
+  if (!value) return '';
+  return String(value).slice(0, 16);
+}
+
+/** 仅日期：2026-10-16 17:02:33 → 2026-10-16 */
+function date(value) {
+  if (!value) return '';
+  return String(value).slice(0, 10);
+}
+
 module.exports = {
   DAY_NAMES,
   dayName,
@@ -102,5 +114,7 @@ module.exports = {
   enrollmentStatusLabel,
   courseStatusLabel,
   credits,
-  truncate
+  truncate,
+  dateTime,
+  date
 };

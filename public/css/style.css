@@ -491,3 +491,18 @@ input:focus, select:focus, textarea:focus {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .alert-ok { background: var(--ok-soft); color: var(--ok); }
+
+/* ============================================================
+   公告通知模块
+   ============================================================ */
+
+.announce-list-lg li { padding: 14px 0; }
+.announce-list-lg a { font-size: 14.5px; }
+
+.article-body {
+  font-size: 14px;
+  line-height: 1.9;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text);
+}

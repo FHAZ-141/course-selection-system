@@ -157,7 +157,24 @@ msg=$(post_flash "$STU_JAR" "/enrollments/$CID_CONFLICT/drop" "back=/enrollments
 check_has "退未选中的课程被拒绝" "$msg" "尚未选中"
 
 echo
-echo "========== 4. 权限隔离 =========="
+echo "========== 4. 公告通知（D5）=========="
+
+c -b "$STU_JAR" -o "$TMP/announce.html" "$BASE/announcements"
+check "公告列表可访问" "$?" "0"
+check "公告列表返回 3 条" "$(grep -c 'announce-meta' "$TMP/announce.html")" "3"
+check "存在置顶公告标记" "$(grep -c 'tag-pin' "$TMP/announce.html")" "1"
+
+AID=$(grep -oE 'href="/announcements/[0-9]+"' "$TMP/announce.html" | head -1 | grep -oE '[0-9]+')
+check "公告详情可访问" "$(code "$BASE/announcements/$AID" -b "$STU_JAR")" "200"
+c -b "$STU_JAR" -o "$TMP/announce_detail.html" "$BASE/announcements/$AID"
+check "公告详情含正文" "$(grep -c 'article-body' "$TMP/announce_detail.html")" "1"
+
+check "不存在的公告返回 404" "$(code "$BASE/announcements/999999" -b "$STU_JAR")" "404"
+check "未登录访问公告应跳转" "$(code "$BASE/announcements")" "302"
+check "教师也可查看公告" "$(code "$BASE/announcements" -b "$TEA_JAR")" "200"
+
+echo
+echo "========== 5. 权限隔离 =========="
 
 check "学生访问教师端应 403" "$(code "$BASE/teacher" -b "$STU_JAR")" "403"
 check "教师访问管理后台应 403" "$(code "$BASE/admin" -b "$TEA_JAR")" "403"
@@ -165,7 +182,7 @@ check "教师端可访问" "$(code "$BASE/teacher" -b "$TEA_JAR")" "200"
 check "管理后台可访问" "$(code "$BASE/admin" -b "$ADMIN_JAR")" "200"
 
 echo
-echo "========== 5. 错误处理与登出 =========="
+echo "========== 6. 错误处理与登出 =========="
 
 check "不存在的路径返回 404" "$(code "$BASE/no-such-page" -b "$ADMIN_JAR")" "404"
 check "登出" "$(code "$BASE/logout" -b "$ADMIN_JAR" -X POST)" "302"

@@ -15,7 +15,7 @@
 | [时间冲突检查](时间冲突检查.md) | C1 C2 C3 R4 | `src/services/conflictService.js`、`src/services/classTimeService.js`、`test/conflict-test.js` | ✅ 已产出 |
 | 选课窗口 | B2 B3 | `src/services/windowService.js` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
 | 选课结果查询 | F6 | `src/routes/enrollments.js` 的 `/my`、`views/my_enrollments.ejs` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
-| 公告通知 | D5 | `src/routes/announcements.js`、`views/announcement_*.ejs` | 待产出 |
+| [公告通知](公告通知.md) | D5 | `src/services/announcementService.js`、`src/routes/announcements.js`、`views/announcement_*.ejs` | ✅ 已产出 |
 | 管理后台 | R8 | `src/routes/admin.js`、`views/admin/*` | 待产出 |
 | 教师端 | R7 | `src/routes/teacher.js`、`views/teacher/*` | 待产出 |
 

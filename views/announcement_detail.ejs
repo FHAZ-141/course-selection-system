@@ -1,0 +1,23 @@
+<%- include('partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">
+      <% if (announcement.pinned) { %><span class="tag tag-pin">置顶</span><% } %>
+      <%= announcement.title %>
+    </h1>
+    <p class="page-sub">
+      <span class="muted"><%= announcement.author_name %></span>
+      <span class="dot">·</span>
+      <span class="muted"><%= fmt.dateTime(announcement.created_at) %></span>
+    </p>
+  </div>
+</div>
+
+<section class="panel">
+  <div class="article-body"><%= announcement.content %></div>
+</section>
+
+<p class="back-link"><a href="/announcements">← 返回公告列表</a></p>
+
+<%- include('partials/footer') %>
