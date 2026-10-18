@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * 选课 / 退课路由（需求 F2 F3 F6，B4 候补）
+ * 选课 / 退课路由（需求 §2.1-2/3/6，B4 候补）
  *
  * 一律采用 POST + 重定向（PRG）：提交后重定向回来源页，
  * 提示信息通过 session 中的 flash 传递，避免刷新导致重复提交。
@@ -27,7 +27,7 @@ function flashAndBack(req, res, result, fallback) {
   res.redirect(safeInternalPath(req.body.back, fallback));
 }
 
-/** 我的选课结果（F6） */
+/** 我的选课结果（§2.1-6） */
 router.get('/my', (req, res) => {
   const data = enrollmentService.listMyEnrollments(req.user.id);
   res.render('my_enrollments', {

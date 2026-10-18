@@ -1,7 +1,7 @@
 'use strict';
 
 /**
- * 选课 / 退课 / 候补服务（需求 F2 F3 F4 B4，规则 R1 R2 R3 R6 R9）
+ * 选课 / 退课 / 候补服务（需求 §2.1-2/3/4、B4，规则 R1 R2 R3 R6 R9）
  *
  * 设计要点：
  *   1. **所有写操作都在 db.transaction 内完成**。校验与占用名额必须原子，
@@ -142,7 +142,7 @@ function promoteNext(courseId, course, now) {
 }
 
 /**
- * 选课（F2 / F4 / B4）
+ * 选课（§2.1-2 / §2.1-4 / B4）
  *
  * 校验顺序（R6）：窗口 → 课程状态 → 是否已选 → 时间冲突 → 余量并占用名额
  */
@@ -206,7 +206,7 @@ function enroll(studentId, courseId) {
 }
 
 /**
- * 退课（F3 / B3 / R3 / R9）
+ * 退课（§2.1-3 / B3 / R3 / R9）
  *
  * 退课**不受选课窗口限制**；退课后触发候补自动补位。
  */
@@ -270,7 +270,7 @@ function cancelWaitlist(studentId, courseId) {
   });
 }
 
-/** 我的选课结果（F6） */
+/** 我的选课结果（§2.1-6） */
 function listMyEnrollments(studentId) {
   const rows = db.all(
     `SELECT e.id AS enrollment_id, e.status, e.waitlist_joined_at, e.updated_at,

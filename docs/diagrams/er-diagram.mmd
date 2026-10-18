@@ -1,0 +1,90 @@
+%% ============================================================
+%%  选课系统 · 数据库 ER 图（U7）
+%%
+%%  渲染方式（任选其一）：
+%%    1) GitHub / VS Code（装 Markdown Preview Mermaid 插件）直接渲染 .md 中的同内容代码块
+%%    2) 导出图片（本机已用 Chrome 无头模式验证可用）：
+%%         npx @mermaid-js/mermaid-cli -i er-diagram.mmd -o er-diagram.png -w 2400
+%%
+%%  字段说明见 docs/04-数据库设计文档.md
+%% ============================================================
+
+erDiagram
+    USER ||--o{ COURSE : "讲授 teacher_id"
+    USER ||--o{ ENROLLMENT : "选课 student_id"
+    USER ||--o{ ANNOUNCEMENT : "发布 author_id"
+    SEMESTER ||--o{ COURSE : "开设 semester_id"
+    COURSE ||--o{ CLASS_TIME : "排课 course_id"
+    COURSE ||--o{ ENROLLMENT : "被选 course_id"
+
+    USER {
+        INTEGER id PK "主键"
+        TEXT username UK "学号 / 工号，登录账号"
+        TEXT password_hash "scrypt 派生密钥"
+        TEXT password_salt "每用户独立盐"
+        TEXT name "姓名"
+        TEXT role "student / teacher / admin"
+        TEXT department "院系"
+        INTEGER grade "年级，仅学生"
+        TEXT created_at "创建时间"
+    }
+
+    SEMESTER {
+        INTEGER id PK "主键"
+        TEXT name "学期名称"
+        TEXT start_date "学期开始日期"
+        INTEGER total_weeks "总周数"
+        TEXT select_open_at "选课窗口开放时间"
+        TEXT select_close_at "选课窗口截止时间"
+        INTEGER is_current "是否当前学期 0/1"
+    }
+
+    COURSE {
+        INTEGER id PK "主键"
+        TEXT code UK "课程代码，如 CS101"
+        TEXT name "课程名称"
+        INTEGER teacher_id FK "授课教师 -> user.id"
+        INTEGER semester_id FK "所属学期 -> semester.id"
+        TEXT department "开课院系"
+        REAL credits "学分"
+        INTEGER capacity "容量上限"
+        TEXT location "上课地点"
+        TEXT description "课程简介"
+        TEXT status "open / closed"
+        TEXT created_at "创建时间"
+    }
+
+    CLASS_TIME {
+        INTEGER id PK "主键"
+        INTEGER course_id FK "所属课程 -> course.id"
+        INTEGER day_of_week "星期 1-7"
+        INTEGER start_period "起始节次"
+        INTEGER end_period "结束节次"
+        TEXT week_type "all / odd / even"
+        INTEGER start_week "起始周"
+        INTEGER end_week "结束周"
+    }
+
+    ENROLLMENT {
+        INTEGER id PK "主键"
+        INTEGER student_id FK "学生 -> user.id"
+        INTEGER course_id FK "课程 -> course.id"
+        TEXT status "enrolled / waiting / dropped"
+        TEXT waitlist_joined_at "进入候补时间，候补排序依据"
+        TEXT created_at "首次创建时间"
+        TEXT updated_at "最后变更时间"
+    }
+
+    ANNOUNCEMENT {
+        INTEGER id PK "主键"
+        TEXT title "标题"
+        TEXT content "正文"
+        INTEGER author_id FK "发布人 -> user.id"
+        INTEGER pinned "是否置顶 0/1"
+        TEXT created_at "发布时间"
+    }
+
+    META {
+        TEXT key PK "键名，如 schema_version"
+        TEXT value "值"
+    }

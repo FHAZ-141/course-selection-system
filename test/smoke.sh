@@ -93,7 +93,7 @@ check "学生登录" "$(code "$BASE/login" -c "$STU_JAR" -d 'username=2024010101
 check "教师登录" "$(code "$BASE/login" -c "$TEA_JAR" -d 'username=T1001&password=123456')" "302"
 
 echo
-echo "========== 2. 课程查询（F1）=========="
+echo "========== 2. 课程查询（§2.1-1）=========="
 
 c -b "$STU_JAR" -o "$TMP/courses_all.html" "$BASE/courses"
 check "课程列表返回 33 门课" "$(grep -c 'strong-link' "$TMP/courses_all.html")" "33"
@@ -126,7 +126,7 @@ check "不存在的课程返回 404" "$(code "$BASE/courses/999999" -b "$STU_JAR
 check "未登录访问课程列表应跳转" "$(code "$BASE/courses")" "302"
 
 echo
-echo "========== 3. 选课与退课（F2 F3 F4 B4）=========="
+echo "========== 3. 选课与退课（§2.1-2/3/4、B4）=========="
 
 check "学生可访问我的选课" "$(code "$BASE/enrollments/my" -b "$STU_JAR")" "200"
 check "教师访问我的选课应 403" "$(code "$BASE/enrollments/my" -b "$TEA_JAR")" "403"

@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS course (
   semester_id INTEGER NOT NULL REFERENCES semester (id),
   department  TEXT,
   credits     REAL    NOT NULL DEFAULT 2.0,
-  capacity    INTEGER NOT NULL CHECK (capacity >= 0), -- 容量上限（F4 人数限制）
+  capacity    INTEGER NOT NULL CHECK (capacity >= 0), -- 容量上限（§2.1-4 人数限制）
   location    TEXT,
   description TEXT,
   status      TEXT    NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'closed')),

@@ -154,7 +154,7 @@ async function main() {
     check('提示"已加入候补"的请求数', waitlistResult, CAPACITY);
     check('候补队列满而被拒绝的请求数', rejected, students.length - CAPACITY * 2);
 
-    console.log('\n【场景二】退课触发候补自动补位（F3 / B4 / R1）');
+    console.log('\n【场景二】退课触发候补自动补位（§2.1-3 / B4 / R1）');
     const enrolledRows = db.all(
       "SELECT id, student_id FROM enrollment WHERE course_id = ? AND status = 'enrolled' ORDER BY id",
       courseId

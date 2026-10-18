@@ -10,11 +10,11 @@
 
 | 模块文档 | 对应需求 | 涉及文件 | 状态 |
 | --- | --- | --- | --- |
-| [课程查询](课程查询.md) | F1 | `src/services/courseService.js`、`src/routes/courses.js`、`src/utils/format.js`、`views/course_list.ejs`、`views/course_detail.ejs` | ✅ 已产出 |
-| [选课与退课](选课与退课.md) | F2 F3 F4 B4 R1 R2 R3 R6 R9 | `src/services/enrollmentService.js`、`src/routes/enrollments.js`、`views/my_enrollments.ejs` | ✅ 已产出 |
+| [课程查询](课程查询.md) | §2.1-1 | `src/services/courseService.js`、`src/routes/courses.js`、`src/utils/format.js`、`views/course_list.ejs`、`views/course_detail.ejs` | ✅ 已产出 |
+| [选课与退课](选课与退课.md) | §2.1-2/3/4、B4、R1 R2 R3 R6 R9 | `src/services/enrollmentService.js`、`src/routes/enrollments.js`、`views/my_enrollments.ejs` | ✅ 已产出 |
 | [时间冲突检查](时间冲突检查.md) | C1 C2 C3 R4 | `src/services/conflictService.js`、`src/services/classTimeService.js`、`test/conflict-test.js` | ✅ 已产出 |
 | 选课窗口 | B2 B3 | `src/services/windowService.js` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
-| 选课结果查询 | F6 | `src/routes/enrollments.js` 的 `/my`、`views/my_enrollments.ejs` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
+| 选课结果查询 | §2.1-6 | `src/routes/enrollments.js` 的 `/my`、`views/my_enrollments.ejs` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
 | [公告通知](公告通知.md) | D5 | `src/services/announcementService.js`、`src/routes/announcements.js`、`views/announcement_*.ejs` | ✅ 已产出 |
 | [管理后台](管理后台.md) | R8 B2 | `src/services/adminService.js`、`src/routes/admin.js`、`views/admin/*` | ✅ 已产出 |
 | [教师端](教师端.md) | R7 | `src/services/teacherService.js`、`src/routes/teacher.js`、`views/teacher/*` | ✅ 已产出 |
