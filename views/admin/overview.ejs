@@ -1,0 +1,57 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">管理后台</h1>
+    <p class="page-sub">
+      <% if (semester) { %>
+        <span><%= semester.name %></span>
+        <span class="dot">·</span>
+        <span class="muted">共 <%= semester.total_weeks %> 周</span>
+      <% } else { %>
+        <span class="muted">尚未配置学期</span>
+      <% } %>
+    </p>
+  </div>
+  <span class="badge <%= windowState.open ? 'badge-ok' : 'badge-warn' %> badge-lg"><%= windowState.label %></span>
+</div>
+
+<% if (!semester) { %>
+  <section class="panel">
+    <p class="empty">系统中还没有学期数据，请先执行 <code>npm run init-db</code> 初始化演示数据。</p>
+  </section>
+<% } else { %>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-label">开设课程</div><div class="stat-value"><%= stats.courseCount %> 门</div></div>
+    <div class="stat-card"><div class="stat-label">正常开课</div><div class="stat-value"><%= stats.openCount %> 门</div></div>
+    <div class="stat-card"><div class="stat-label">在册学生</div><div class="stat-value"><%= stats.studentCount %> 人</div></div>
+    <div class="stat-card"><div class="stat-label">授课教师</div><div class="stat-value"><%= stats.teacherCount %> 人</div></div>
+    <div class="stat-card"><div class="stat-label">选课记录</div><div class="stat-value"><%= stats.enrolledCount %> 条</div></div>
+    <div class="stat-card"><div class="stat-label">候补中</div><div class="stat-value"><%= stats.waitingCount %> 条</div></div>
+    <div class="stat-card"><div class="stat-label">公告</div><div class="stat-value"><%= stats.announcementCount %> 条</div></div>
+  </div>
+
+  <section class="panel">
+    <h2 class="panel-title">管理功能</h2>
+    <div class="quick-links">
+      <a class="quick-link" href="/admin/courses">
+        <span class="quick-name">课程管理</span>
+        <span class="quick-desc">新增、编辑、删除课程；设置容量、上课时间与单双周</span>
+      </a>
+      <a class="quick-link" href="/admin/semester">
+        <span class="quick-name">选课窗口配置</span>
+        <span class="quick-desc">设置选课开放与截止时间，截止后学生无法选课</span>
+      </a>
+      <a class="quick-link" href="/admin/announcements">
+        <span class="quick-name">公告管理</span>
+        <span class="quick-desc">发布、置顶、删除公告</span>
+      </a>
+      <a class="quick-link" href="/admin/enrollments">
+        <span class="quick-name">选课统计</span>
+        <span class="quick-desc">各课程已选人数、候补人数与满员率</span>
+      </a>
+    </div>
+  </section>
+<% } %>
+
+<%- include('../partials/footer') %>

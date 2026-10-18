@@ -1,0 +1,56 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">选课统计</h1>
+    <p class="page-sub">
+      <% if (semester) { %>
+        <span class="muted"><%= semester.name %> · 按已选人数排序</span>
+      <% } else { %>
+        <span class="muted">尚未配置学期</span>
+      <% } %>
+    </p>
+  </div>
+</div>
+
+<section class="panel">
+  <% if (rows.length === 0) { %>
+    <p class="empty">暂无选课数据。</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>课程代码</th>
+          <th>课程名</th>
+          <th class="col-num">教师</th>
+          <th class="col-num">已选</th>
+          <th class="col-num">容量</th>
+          <th class="col-num">候补</th>
+          <th class="col-load">满员率</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach(function (r) { %>
+          <tr>
+            <td><code><%= r.code %></code></td>
+            <td><a class="strong-link" href="/courses/<%= r.id %>"><%= r.name %></a></td>
+            <td class="col-num muted"><%= r.teacher_name %></td>
+            <td class="col-num"><%= r.enrolled_count %></td>
+            <td class="col-num muted"><%= r.capacity %></td>
+            <td class="col-num">
+              <%= r.waitlist_count %><% if (r.waitlist_count > 0) { %> <span class="badge badge-warn">候补</span><% } %>
+            </td>
+            <td class="col-load">
+              <div class="capacity-bar capacity-bar-sm">
+                <div class="capacity-fill <%= r.loadRate >= 100 ? 'is-full' : '' %>" style="width: <%= Math.min(r.loadRate, 100) %>%"></div>
+              </div>
+              <span class="cell-sub"><%= r.loadRate %>%</span>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>

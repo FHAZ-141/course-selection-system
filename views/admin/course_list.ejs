@@ -1,0 +1,80 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">课程管理</h1>
+    <p class="page-sub">
+      <% if (semester) { %>
+        <span class="muted"><%= semester.name %> · 共 <%= courses.length %> 门</span>
+      <% } else { %>
+        <span class="muted">尚未配置学期</span>
+      <% } %>
+    </p>
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-primary btn-sm" href="/admin/courses/new">+ 新增课程</a>
+  </div>
+</div>
+
+<section class="panel">
+  <% if (courses.length === 0) { %>
+    <p class="empty">还没有课程，点右上角「新增课程」开始。</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>课程代码</th>
+          <th>课程名</th>
+          <th>教师</th>
+          <th>院系</th>
+          <th>学分</th>
+          <th class="col-num">已选 / 容量</th>
+          <th class="col-num">候补</th>
+          <th class="col-num">排课</th>
+          <th>状态</th>
+          <th class="col-actions">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% courses.forEach(function (c) { %>
+          <tr>
+            <td><code><%= c.code %></code></td>
+            <td><a class="strong-link" href="/courses/<%= c.id %>"><%= c.name %></a></td>
+            <td><%= c.teacher_name %></td>
+            <td class="muted"><%= c.department || '—' %></td>
+            <td><%= fmt.credits(c.credits) %></td>
+            <td class="col-num">
+              <span class="<%= c.remaining === 0 ? 'text-danger' : '' %>"><%= c.enrolled_count %> / <%= c.capacity %></span>
+            </td>
+            <td class="col-num"><%= c.waitlist_count %></td>
+            <td class="col-num">
+              <%= c.time_count %> 段<% if (c.time_count === 0) { %><span class="text-danger"> ⚠</span><% } %>
+            </td>
+            <td>
+              <% if (c.status === 'closed') { %>
+                <span class="badge badge-warn">停开</span>
+              <% } else if (c.remaining === 0) { %>
+                <span class="badge badge-warn">已满</span>
+              <% } else { %>
+                <span class="badge badge-ok">正常</span>
+              <% } %>
+            </td>
+            <td class="col-actions">
+              <a class="btn btn-sm" href="/admin/courses/<%= c.id %>/edit">编辑</a>
+              <form method="post" action="/admin/courses/<%= c.id %>/delete" class="inline-form"
+                    onsubmit="return confirm('确定删除课程「<%= c.name %>」吗？此操作不可撤销。');">
+                <button type="submit" class="btn btn-sm btn-danger">删除</button>
+              </form>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<p class="panel-note panel-note-standalone">
+  提示：已有生效选课记录的课程不允许删除，请把状态改为「停开」。
+</p>
+
+<%- include('../partials/footer') %>

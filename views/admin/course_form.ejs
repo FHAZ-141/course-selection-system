@@ -1,0 +1,173 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= title %></h1>
+    <p class="page-sub"><span class="muted">带 * 的为必填项</span></p>
+  </div>
+</div>
+
+<% if (error) { %>
+  <div class="alert alert-error"><%= error %></div>
+<% } %>
+
+<form method="post" action="<%= mode === 'edit' ? '/admin/courses/' + course.id : '/admin/courses' %>" class="form">
+  <section class="panel">
+    <h2 class="panel-title">基本信息</h2>
+
+    <div class="form-grid">
+      <label class="field">
+        <span class="field-label">课程代码 *</span>
+        <input type="text" name="code" value="<%= course.code %>" placeholder="如 CS101" required>
+        <span class="field-hint">字母 + 数字，如 CS101</span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">课程名称 *</span>
+        <input type="text" name="name" value="<%= course.name %>" maxlength="50" required>
+      </label>
+
+      <label class="field">
+        <span class="field-label">授课教师 *</span>
+        <select name="teacherId" required>
+          <option value="">请选择</option>
+          <% teachers.forEach(function (t) { %>
+            <option value="<%= t.id %>" <%= String(course.teacherId) === String(t.id) ? 'selected' : '' %>>
+              <%= t.name %>（<%= t.username %>，<%= t.department || '未设院系' %>）
+            </option>
+          <% }); %>
+        </select>
+      </label>
+
+      <label class="field">
+        <span class="field-label">开课院系</span>
+        <input type="text" name="department" value="<%= course.department %>" list="dept-options">
+        <datalist id="dept-options">
+          <% departments.forEach(function (d) { %><option value="<%= d %>"></option><% }); %>
+        </datalist>
+        <span class="field-hint">可填新院系，也可从已有院系中选</span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">学分 *</span>
+        <input type="number" name="credits" value="<%= course.credits %>" step="0.5" min="0.5" max="20" required>
+      </label>
+
+      <label class="field">
+        <span class="field-label">容量上限 *</span>
+        <input type="number" name="capacity" value="<%= course.capacity %>" min="0" max="500" step="1" required>
+        <span class="field-hint">0 表示不开放名额</span>
+      </label>
+
+      <label class="field">
+        <span class="field-label">上课地点</span>
+        <input type="text" name="location" value="<%= course.location %>">
+      </label>
+
+      <label class="field">
+        <span class="field-label">开课状态</span>
+        <select name="status">
+          <option value="open" <%= course.status === 'open' ? 'selected' : '' %>>正常开课</option>
+          <option value="closed" <%= course.status === 'closed' ? 'selected' : '' %>>停开</option>
+        </select>
+      </label>
+
+      <label class="field field-full">
+        <span class="field-label">课程简介</span>
+        <textarea name="description" rows="3"><%= course.description %></textarea>
+      </label>
+    </div>
+  </section>
+
+  <section class="panel panel-gap">
+    <div class="panel-head-row">
+      <h2 class="panel-title">上课时间</h2>
+      <button type="button" class="btn btn-sm" data-add-row>+ 添加时间段</button>
+    </div>
+    <p class="panel-note">
+      一门课可有多段。单双周与周次区间用于时间冲突判定：单周课与双周课即使同一时段也不算冲突。
+    </p>
+
+    <table class="table table-compact" id="ct-table">
+      <thead>
+        <tr>
+          <th>星期</th>
+          <th>起始节</th>
+          <th>结束节</th>
+          <th>周次类型</th>
+          <th>起始周</th>
+          <th>结束周</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="ct-body">
+        <% times.forEach(function (t) { %>
+          <tr class="ct-row">
+            <td>
+              <select name="ct_day">
+                <option value="">—</option>
+                <% for (let d = 1; d <= 7; d++) { %>
+                  <option value="<%= d %>" <%= Number(t.dayOfWeek) === d ? 'selected' : '' %>><%= ['','周一','周二','周三','周四','周五','周六','周日'][d] %></option>
+                <% } %>
+              </select>
+            </td>
+            <td><input type="number" name="ct_start" value="<%= t.startPeriod %>" min="1" max="12" step="1"></td>
+            <td><input type="number" name="ct_end" value="<%= t.endPeriod %>" min="1" max="12" step="1"></td>
+            <td>
+              <select name="ct_week_type">
+                <% Object.keys(weekTypes).forEach(function (key) { %>
+                  <option value="<%= key %>" <%= t.weekType === key ? 'selected' : '' %>><%= weekTypes[key] %></option>
+                <% }); %>
+              </select>
+            </td>
+            <td><input type="number" name="ct_start_week" value="<%= t.startWeek %>" min="1" max="30" step="1"></td>
+            <td><input type="number" name="ct_end_week" value="<%= t.endWeek %>" min="1" max="30" step="1"></td>
+            <td><button type="button" class="btn btn-sm btn-danger" data-remove-row>移除</button></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+
+    <% if (times.length === 0) { %>
+      <p class="empty" id="ct-empty">还没有排课，点上方「添加时间段」。也可以先不排课，之后再补。</p>
+    <% } %>
+  </section>
+
+  <div class="form-actions">
+    <button type="submit" class="btn btn-primary"><%= mode === 'edit' ? '保存修改' : '创建课程' %></button>
+    <a class="btn" href="/admin/courses">取消</a>
+  </div>
+</form>
+
+<template id="ct-row-template">
+  <tr class="ct-row">
+    <td>
+      <select name="ct_day">
+        <option value="">—</option>
+        <option value="1">周一</option>
+        <option value="2">周二</option>
+        <option value="3">周三</option>
+        <option value="4">周四</option>
+        <option value="5">周五</option>
+        <option value="6">周六</option>
+        <option value="7">周日</option>
+      </select>
+    </td>
+    <td><input type="number" name="ct_start" value="1" min="1" max="12" step="1"></td>
+    <td><input type="number" name="ct_end" value="2" min="1" max="12" step="1"></td>
+    <td>
+      <select name="ct_week_type">
+        <option value="all">每周</option>
+        <option value="odd">单周</option>
+        <option value="even">双周</option>
+      </select>
+    </td>
+    <td><input type="number" name="ct_start_week" value="1" min="1" max="30" step="1"></td>
+    <td><input type="number" name="ct_end_week" value="16" min="1" max="30" step="1"></td>
+    <td><button type="button" class="btn btn-sm btn-danger" data-remove-row>移除</button></td>
+  </tr>
+</template>
+
+<script src="/js/admin-course.js"></script>
+
+<%- include('../partials/footer') %>

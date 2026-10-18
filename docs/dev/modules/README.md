@@ -16,7 +16,7 @@
 | 选课窗口 | B2 B3 | `src/services/windowService.js` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
 | 选课结果查询 | F6 | `src/routes/enrollments.js` 的 `/my`、`views/my_enrollments.ejs` | ✅ 已实现（说明见 [选课与退课](选课与退课.md)） |
 | [公告通知](公告通知.md) | D5 | `src/services/announcementService.js`、`src/routes/announcements.js`、`views/announcement_*.ejs` | ✅ 已产出 |
-| 管理后台 | R8 | `src/routes/admin.js`、`views/admin/*` | 待产出 |
+| [管理后台](管理后台.md) | R8 B2 | `src/services/adminService.js`、`src/routes/admin.js`、`views/admin/*` | ✅ 已产出 |
 | 教师端 | R7 | `src/routes/teacher.js`、`views/teacher/*` | 待产出 |
 
 ---

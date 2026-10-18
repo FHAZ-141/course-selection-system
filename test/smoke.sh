@@ -73,6 +73,11 @@ post_flash() {
   c -b "$jar" "$loc" | grep -oE 'alert alert-(ok|error)">[^<]*' | head -1 | sed 's/.*">//'
 }
 
+# post_error <会话文件> <路径> <表单体> → 输出 400 渲染页面上的错误文案
+post_error() {
+  c -b "$1" -d "$3" "$BASE$2" | grep -oE 'alert alert-error">[^<]*' | head -1 | sed 's/.*">//'
+}
+
 echo "========== 1. 基础与鉴权 =========="
 
 health=$(c "$BASE/health" | grep -o '"ok":true' || true)
@@ -174,7 +179,76 @@ check "未登录访问公告应跳转" "$(code "$BASE/announcements")" "302"
 check "教师也可查看公告" "$(code "$BASE/announcements" -b "$TEA_JAR")" "200"
 
 echo
-echo "========== 5. 权限隔离 =========="
+echo "========== 5. 管理后台（R8）=========="
+
+check "学生访问管理后台应 403" "$(code "$BASE/admin" -b "$STU_JAR")" "403"
+check "管理后台概览可访问" "$(code "$BASE/admin" -b "$ADMIN_JAR")" "200"
+check "课程管理页可访问" "$(code "$BASE/admin/courses" -b "$ADMIN_JAR")" "200"
+check "新增课程页可访问" "$(code "$BASE/admin/courses/new" -b "$ADMIN_JAR")" "200"
+check "选课统计页可访问" "$(code "$BASE/admin/enrollments" -b "$ADMIN_JAR")" "200"
+
+# --- 新增课程 ---
+msg=$(post_flash "$ADMIN_JAR" /admin/courses \
+  "code=TST901&name=%E6%B5%8B%E8%AF%95%E8%AF%BE%E7%A8%8B&teacherId=2&department=%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%AD%A6%E9%99%A2&credits=2&capacity=10&location=A101&description=&status=open")
+check_has "新增课程成功" "$msg" "已创建"
+
+NEW_CID=$(c -b "$ADMIN_JAR" "$BASE/admin/courses" | grep -oE 'href="/admin/courses/[0-9]+/edit"' | head -1 | grep -oE '[0-9]+')
+# 用课程代码定位刚建的课程 id（按 code 排序，TST901 排在最后）
+NEW_CID=$(c -b "$ADMIN_JAR" "$BASE/courses?keyword=TST901" | grep -oE 'href="/courses/[0-9]+"' | head -1 | grep -oE '[0-9]+')
+check "新增课程可在课程查询中检索到" "$([ -n "$NEW_CID" ] && echo yes || echo no)" "yes"
+
+# --- 重复课程代码应被拒绝 ---
+msg=$(post_error "$ADMIN_JAR" /admin/courses \
+  "code=TST901&name=%E9%87%8D%E5%A4%8D%E4%BB%A3%E7%A0%81&teacherId=2&credits=2&capacity=10&status=open")
+check_has "重复课程代码被拒绝" "$msg" "已被占用"
+
+# --- 编辑容量 ---
+msg=$(post_flash "$ADMIN_JAR" "/admin/courses/$NEW_CID" \
+  "code=TST901&name=%E6%B5%8B%E8%AF%95%E8%AF%BE%E7%A8%8B&teacherId=2&department=%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%AD%A6%E9%99%A2&credits=2&capacity=5&location=A101&status=open")
+check_has "编辑课程成功" "$msg" "已更新"
+cap=$(c -b "$ADMIN_JAR" "$BASE/courses/$NEW_CID" | grep -oE '容量上限</dt><dd>[0-9]+' | grep -oE '[0-9]+$')
+check "容量已改为 5" "$cap" "5"
+
+# --- 删除课程 ---
+msg=$(post_flash "$ADMIN_JAR" "/admin/courses/$NEW_CID/delete" "")
+check_has "删除课程成功" "$msg" "已删除"
+left=$(c -b "$ADMIN_JAR" "$BASE/courses?keyword=TST901" | grep -c 'strong-link')
+check "删除后检索不到该课程" "$left" "0"
+
+# --- 有选课记录的课程不允许删除（CS101 有预置选课）---
+CS101_ID=$(course_id "$ADMIN_JAR" CS101)
+msg=$(post_flash "$ADMIN_JAR" "/admin/courses/$CS101_ID/delete" "")
+check_has "有选课记录的课程禁止删除" "$msg" "不能删除"
+
+# --- 选课窗口：非法区间被拒绝，合法保存后还原 ---
+sem_page=$(c -b "$ADMIN_JAR" "$BASE/admin/semester")
+orig_open=$(echo "$sem_page" | grep -oE 'name="openAt" value="[^"]*"' | sed 's/.*value="//; s/"$//')
+orig_close=$(echo "$sem_page" | grep -oE 'name="closeAt" value="[^"]*"' | sed 's/.*value="//; s/"$//')
+check "选课窗口页可访问" "$(code "$BASE/admin/semester" -b "$ADMIN_JAR")" "200"
+check "截止早于开放应被拒绝" \
+  "$(code "$BASE/admin/semester" -b "$ADMIN_JAR" -d 'openAt=2026-12-01T08:00&closeAt=2026-11-01T08:00')" "400"
+msg=$(post_flash "$ADMIN_JAR" /admin/semester "openAt=2026-09-01T08:00&closeAt=2026-12-31T23:59")
+check_has "合法窗口保存成功" "$msg" "选课窗口已保存"
+
+# 还原为测试前的窗口，避免污染数据
+if [ -n "$orig_open" ] && [ -n "$orig_close" ]; then
+  post_flash "$ADMIN_JAR" /admin/semester "openAt=$orig_open&closeAt=$orig_close" > /dev/null
+fi
+
+# --- 公告发布 / 置顶 / 删除 ---
+msg=$(post_flash "$ADMIN_JAR" /admin/announcements "title=%E6%B5%8B%E8%AF%95%E5%85%AC%E5%91%8A&content=%E6%B5%8B%E8%AF%95%E5%86%85%E5%AE%B9&pinned=on")
+check_has "发布公告成功" "$msg" "已发布"
+list_html=$(c -b "$ADMIN_JAR" "$BASE/announcements")
+check_has "公告列表出现新公告" "$list_html" "测试公告"
+
+AID2=$(c -b "$ADMIN_JAR" "$BASE/admin/announcements" | grep -oE 'announcements/[0-9]+/delete' | grep -oE '[0-9]+' | sort -n | tail -1)
+check_has "取消置顶成功" "$(post_flash "$ADMIN_JAR" "/admin/announcements/$AID2/pin" "")" "取消置顶"
+check_has "删除公告成功" "$(post_flash "$ADMIN_JAR" "/admin/announcements/$AID2/delete" "")" "已删除"
+
+check "教师访问管理后台应 403" "$(code "$BASE/admin/courses" -b "$TEA_JAR")" "403"
+
+echo
+echo "========== 6. 权限隔离 =========="
 
 check "学生访问教师端应 403" "$(code "$BASE/teacher" -b "$STU_JAR")" "403"
 check "教师访问管理后台应 403" "$(code "$BASE/admin" -b "$TEA_JAR")" "403"
@@ -182,7 +256,7 @@ check "教师端可访问" "$(code "$BASE/teacher" -b "$TEA_JAR")" "200"
 check "管理后台可访问" "$(code "$BASE/admin" -b "$ADMIN_JAR")" "200"
 
 echo
-echo "========== 6. 错误处理与登出 =========="
+echo "========== 7. 错误处理与登出 =========="
 
 check "不存在的路径返回 404" "$(code "$BASE/no-such-page" -b "$ADMIN_JAR")" "404"
 check "登出" "$(code "$BASE/logout" -b "$ADMIN_JAR" -X POST)" "302"

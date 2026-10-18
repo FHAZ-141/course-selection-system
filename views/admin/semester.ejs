@@ -1,0 +1,58 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">选课窗口配置</h1>
+    <p class="page-sub">
+      <% if (semester) { %>
+        <span class="muted"><%= semester.name %></span>
+      <% } else { %>
+        <span class="muted">尚未配置学期</span>
+      <% } %>
+    </p>
+  </div>
+  <span class="badge <%= windowState.open ? 'badge-ok' : 'badge-warn' %> badge-lg"><%= windowState.label %></span>
+</div>
+
+<% if (error) { %>
+  <div class="alert alert-error"><%= error %></div>
+<% } %>
+
+<section class="panel">
+  <h2 class="panel-title">开放时间设置</h2>
+  <p class="panel-note">
+    窗口开放期间学生可选课；<strong>截止后学生无法再选课，但退课与候补补位不受影响</strong>（需求 B3 / R3）。
+  </p>
+
+  <% if (!semester) { %>
+    <p class="empty">系统中还没有学期数据，请先执行 <code>npm run init-db</code>。</p>
+  <% } else { %>
+    <form method="post" action="/admin/semester" class="form">
+      <div class="form-grid">
+        <label class="field">
+          <span class="field-label">选课开放时间 *</span>
+          <input type="datetime-local" name="openAt" value="<%= openAtLocal %>" required>
+        </label>
+        <label class="field">
+          <span class="field-label">选课截止时间 *</span>
+          <input type="datetime-local" name="closeAt" value="<%= closeAtLocal %>" required>
+        </label>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">保存</button>
+      </div>
+    </form>
+
+    <dl class="kv kv-gap">
+      <dt>当前开放时间</dt><dd><%= semester.select_open_at || '未设置' %></dd>
+      <dt>当前截止时间</dt><dd><%= semester.select_close_at || '未设置' %></dd>
+    </dl>
+
+    <div class="note note-info">
+      想演示「截止后不能选课」：把截止时间改成一个过去的时间并保存，再回到课程查询尝试选课即可。
+    </div>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>
