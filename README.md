@@ -54,6 +54,23 @@
 
 ### 启动步骤
 
+#### 方式一：双击启动（推荐）
+
+Windows 下**双击 `start.bat`** 即可。启动器会自动完成：
+
+1. 检查依赖，缺失则自动执行 `npm install`
+2. 检查数据库，缺失则自动初始化演示数据
+3. 启动服务
+4. **自动打开浏览器**到 <http://localhost:3000>
+
+无需敲任何命令。若端口 3000 被占用，会自动改用后续可用端口并提示实际地址；
+若服务已在运行，则直接打开浏览器，不会重复启动。
+
+> macOS / Linux 可执行 `node start.js`，效果相同。
+> 只启动服务不开浏览器：`node start.js --no-browser`。
+
+#### 方式二：命令行启动
+
 ```bash
 npm install        # 1. 安装依赖
 npm run init-db    # 2. 初始化数据库并写入演示数据（首次必需）
@@ -76,7 +93,8 @@ npm start          # 3. 启动服务
 
 | 命令 | 说明 |
 | --- | --- |
-| `npm start` | 启动服务（默认端口 3000，可用 `PORT` 环境变量覆盖） |
+| `npm run launch` | **一键启动**（等价于双击 `start.bat`：装依赖 + 建库 + 起服务 + 开浏览器） |
+| `npm start` | 仅启动服务（默认端口 3000，可用 `PORT` 环境变量覆盖） |
 | `npm run init-db` | 初始化数据库并写入演示数据（已有数据则跳过） |
 | `npm run reset-db` | 清空并重建数据库 |
 | `npm run smoke` | 运行接口冒烟测试（需先启动服务） |
@@ -96,6 +114,8 @@ npm start          # 3. 启动服务
 
 ```
 course-selection-system/
+├── start.bat              # 一键启动（Windows 双击）
+├── start.js               # 启动器：装依赖 → 建库 → 起服务 → 开浏览器
 ├── src/
 │   ├── server.js          # 启动入口（监听端口、优雅退出）
 │   ├── app.js             # Express 应用装配（视图、静态资源、会话、路由）
