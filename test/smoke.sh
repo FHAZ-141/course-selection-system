@@ -96,7 +96,7 @@ echo
 echo "========== 2. 课程查询（F1）=========="
 
 c -b "$STU_JAR" -o "$TMP/courses_all.html" "$BASE/courses"
-check "课程列表返回 32 门课" "$(grep -c 'strong-link' "$TMP/courses_all.html")" "32"
+check "课程列表返回 33 门课" "$(grep -c 'strong-link' "$TMP/courses_all.html")" "33"
 
 hit=$(c -b "$STU_JAR" "$BASE/courses?keyword=%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84" | grep -c 'strong-link')
 check "按课程名检索「数据结构」命中 1 门" "$hit" "1"
@@ -108,7 +108,7 @@ hit=$(c -b "$STU_JAR" "$BASE/courses?department=%E6%95%B0%E5%AD%A6%E5%AD%A6%E9%9
 check "按院系筛选「数学学院」命中 8 门" "$hit" "8"
 
 hit=$(c -b "$STU_JAR" "$BASE/courses?dayOfWeek=1" | grep -c 'strong-link')
-check "按上课星期筛选「周一」命中 5 门" "$hit" "5"
+check "按上课星期筛选「周一」命中 6 门" "$hit" "6"
 
 empty=$(c -b "$STU_JAR" "$BASE/courses?keyword=zzzzz" | grep -c '没有符合条件的课程')
 check "无结果时显示空态提示" "$empty" "1"
@@ -248,7 +248,39 @@ check_has "删除公告成功" "$(post_flash "$ADMIN_JAR" "/admin/announcements/
 check "教师访问管理后台应 403" "$(code "$BASE/admin/courses" -b "$TEA_JAR")" "403"
 
 echo
-echo "========== 6. 权限隔离 =========="
+echo "========== 6. 教师端（R7）=========="
+
+check "学生访问教师端应 403" "$(code "$BASE/teacher" -b "$STU_JAR")" "403"
+check "教师端首页可访问" "$(code "$BASE/teacher" -b "$TEA_JAR")" "200"
+
+c -b "$TEA_JAR" -o "$TMP/tea_home.html" "$BASE/teacher"
+# 张伟名下 5 门课：CS101 / CS104 / CS107 / CS110 / CS113，其中 CS101 与 CS113 时间冲突
+check "教师首页提示授课冲突" "$(grep -c '处授课时间冲突' "$TMP/tea_home.html")" "1"
+
+c -b "$TEA_JAR" -o "$TMP/tea_courses.html" "$BASE/teacher/courses"
+check "我的课程页可访问" "$?" "0"
+# 用不重复的课程 id 数量判断，避免页面上重复的链接干扰计数
+check "我的课程列出 5 门" \
+  "$(grep -oE 'teacher/courses/[0-9]+/students' "$TMP/tea_courses.html" | sort -u | wc -l | tr -d ' ')" "5"
+
+# 自己课程（CS101）的选课名单
+CS101_T=$(course_id "$TEA_JAR" CS101)
+check "自己课程的选课名单可访问" "$(code "$BASE/teacher/courses/$CS101_T/students" -b "$TEA_JAR")" "200"
+c -b "$TEA_JAR" -o "$TMP/tea_students.html" "$BASE/teacher/courses/$CS101_T/students"
+check "名单中出现已选学生" "$(grep -c '陈思远' "$TMP/tea_students.html")" "1"
+
+# 越权：张伟访问李娜的课程（CS102）名单
+CS102_T=$(course_id "$TEA_JAR" CS102)
+check "访问他人课程名单应 403" "$(code "$BASE/teacher/courses/$CS102_T/students" -b "$TEA_JAR")" "403"
+check "访问不存在的课程名单应 404" "$(code "$BASE/teacher/courses/999999/students" -b "$TEA_JAR")" "404"
+
+# 授课冲突提示：张伟的 CS101 与 CS113 都在周一 1-2 节
+conf_page=$(c -b "$TEA_JAR" "$BASE/teacher/conflicts")
+check_has "冲突页检出 CS101 与 CS113 冲突" "$conf_page" "计算机图形学"
+check_has "冲突页展示具体时段" "$conf_page" "周一 第1-2节"
+
+echo
+echo "========== 7. 权限隔离 =========="
 
 check "学生访问教师端应 403" "$(code "$BASE/teacher" -b "$STU_JAR")" "403"
 check "教师访问管理后台应 403" "$(code "$BASE/admin" -b "$TEA_JAR")" "403"
@@ -256,7 +288,7 @@ check "教师端可访问" "$(code "$BASE/teacher" -b "$TEA_JAR")" "200"
 check "管理后台可访问" "$(code "$BASE/admin" -b "$ADMIN_JAR")" "200"
 
 echo
-echo "========== 7. 错误处理与登出 =========="
+echo "========== 8. 错误处理与登出 =========="
 
 check "不存在的路径返回 404" "$(code "$BASE/no-such-page" -b "$ADMIN_JAR")" "404"
 check "登出" "$(code "$BASE/logout" -b "$ADMIN_JAR" -X POST)" "302"

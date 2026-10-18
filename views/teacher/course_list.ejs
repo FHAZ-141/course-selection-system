@@ -1,0 +1,65 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">我的课程</h1>
+    <p class="page-sub"><span class="muted">共 <%= courses.length %> 门</span></p>
+  </div>
+</div>
+
+<section class="panel">
+  <% if (courses.length === 0) { %>
+    <p class="empty">暂无排课。若认为有误，请联系教务处。</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>课程代码</th>
+          <th>课程名</th>
+          <th>学期</th>
+          <th>学分</th>
+          <th>上课时间</th>
+          <th class="col-num">已选 / 容量</th>
+          <th class="col-num">候补</th>
+          <th>状态</th>
+          <th class="col-actions">操作</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% courses.forEach(function (c) { %>
+          <tr>
+            <td><code><%= c.code %></code></td>
+            <td><a class="strong-link" href="/teacher/courses/<%= c.id %>/students"><%= c.name %></a></td>
+            <td class="muted"><%= c.semester_name %></td>
+            <td><%= fmt.credits(c.credits) %></td>
+            <td>
+              <% if (c.class_times.length === 0) { %>
+                <span class="muted">未排课</span>
+              <% } else { %>
+                <% c.class_times.forEach(function (ct) { %>
+                  <div class="cell-line"><%= fmt.describeClassTime(ct) %></div>
+                <% }); %>
+              <% } %>
+            </td>
+            <td class="col-num">
+              <span class="<%= c.remaining === 0 ? 'text-danger' : '' %>"><%= c.enrolled_count %> / <%= c.capacity %></span>
+            </td>
+            <td class="col-num"><%= c.waitlist_count %></td>
+            <td>
+              <% if (c.status === 'closed') { %>
+                <span class="badge badge-warn">停开</span>
+              <% } else { %>
+                <span class="badge badge-ok">正常</span>
+              <% } %>
+            </td>
+            <td class="col-actions">
+              <a class="btn btn-sm" href="/teacher/courses/<%= c.id %>/students">选课名单</a>
+            </td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>

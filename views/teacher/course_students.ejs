@@ -1,0 +1,103 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">
+      <%= course.name %>
+      <code class="title-code"><%= course.code %></code>
+    </h1>
+    <p class="page-sub">
+      <span class="muted"><%= course.semester_name %></span>
+      <span class="dot">·</span><span class="muted"><%= fmt.credits(course.credits) %> 学分</span>
+      <span class="dot">·</span><span class="muted">容量 <%= course.capacity %> 人</span>
+    </p>
+  </div>
+  <span class="badge <%= course.status === 'closed' ? 'badge-warn' : 'badge-ok' %> badge-lg">
+    <%= course.status === 'closed' ? '停开' : '正常开课' %>
+  </span>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="stat-label">已选人数</div><div class="stat-value"><%= enrolled.length %> 人</div></div>
+  <div class="stat-card"><div class="stat-label">候补人数</div><div class="stat-value"><%= waiting.length %> 人</div></div>
+  <div class="stat-card"><div class="stat-label">剩余名额</div><div class="stat-value"><%= Math.max(course.capacity - enrolled.length, 0) %> 个</div></div>
+</div>
+
+<section class="panel">
+  <h2 class="panel-title">上课时间</h2>
+  <% if (course.class_times.length === 0) { %>
+    <p class="empty">该课程尚未排课。</p>
+  <% } else { %>
+    <ul class="plain-list">
+      <% course.class_times.forEach(function (ct) { %>
+        <li><%= fmt.describeClassTime(ct) %></li>
+      <% }); %>
+    </ul>
+  <% } %>
+  <p class="cell-sub">上课地点：<%= course.location || '未指定' %></p>
+</section>
+
+<section class="panel panel-gap">
+  <h2 class="panel-title">已选名单（<%= enrolled.length %> 人）</h2>
+  <% if (enrolled.length === 0) { %>
+    <p class="empty">还没有学生选中这门课。</p>
+  <% } else { %>
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="col-num">序号</th>
+          <th>学号</th>
+          <th>姓名</th>
+          <th class="col-num">年级</th>
+          <th>院系</th>
+          <th class="col-num">选课时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% enrolled.forEach(function (s, i) { %>
+          <tr>
+            <td class="col-num muted"><%= i + 1 %></td>
+            <td><code><%= s.username %></code></td>
+            <td><%= s.name %></td>
+            <td class="col-num muted"><%= s.grade || '—' %></td>
+            <td class="muted"><%= s.department || '—' %></td>
+            <td class="col-num muted"><%= fmt.dateTime(s.created_at) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="panel panel-gap">
+  <h2 class="panel-title">候补队列（<%= waiting.length %> 人）</h2>
+  <% if (waiting.length === 0) { %>
+    <p class="empty">当前没有学生候补。</p>
+  <% } else { %>
+    <p class="panel-note">按进入候补的时间先后排序，有学生退课时系统会自动补位队首。</p>
+    <table class="table">
+      <thead>
+        <tr>
+          <th class="col-num">位次</th>
+          <th>学号</th>
+          <th>姓名</th>
+          <th class="col-num">进入候补时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% waiting.forEach(function (s, i) { %>
+          <tr>
+            <td class="col-num"><span class="badge badge-warn">第 <%= i + 1 %> 位</span></td>
+            <td><code><%= s.username %></code></td>
+            <td><%= s.name %></td>
+            <td class="col-num muted"><%= fmt.dateTime(s.waitlist_joined_at || s.updated_at) %></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<p class="back-link"><a href="/teacher/courses">← 返回我的课程</a></p>
+
+<%- include('../partials/footer') %>

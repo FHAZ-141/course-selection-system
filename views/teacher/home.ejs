@@ -1,0 +1,76 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">教师端</h1>
+    <p class="page-sub"><span class="muted"><%= currentUser.name %>老师，这里是你所授课程的选课情况</span></p>
+  </div>
+  <% if (stats.conflictCount > 0) { %>
+    <span class="badge badge-warn badge-lg">发现 <%= stats.conflictCount %> 处授课时间冲突</span>
+  <% } %>
+</div>
+
+<div class="stat-grid">
+  <div class="stat-card"><div class="stat-label">所授课程</div><div class="stat-value"><%= stats.courseCount %> 门</div></div>
+  <div class="stat-card"><div class="stat-label">正常开课</div><div class="stat-value"><%= stats.openCount %> 门</div></div>
+  <div class="stat-card"><div class="stat-label">选课学生</div><div class="stat-value"><%= stats.enrolledCount %> 人次</div></div>
+  <div class="stat-card"><div class="stat-label">候补中</div><div class="stat-value"><%= stats.waitingCount %> 人次</div></div>
+</div>
+
+<% if (stats.conflictCount > 0) { %>
+  <div class="alert alert-error">
+    你所授课程之间存在 <%= stats.conflictCount %> 处时间冲突，请前往
+    <a href="/teacher/conflicts">授课时间冲突</a> 查看详情。
+  </div>
+<% } %>
+
+<div class="columns">
+  <section class="panel">
+    <h2 class="panel-title">我的课程（最近 5 门）</h2>
+    <% if (courses.length === 0) { %>
+      <p class="empty">暂无排课。</p>
+    <% } else { %>
+      <table class="table table-compact">
+        <thead>
+          <tr><th>课程</th><th class="col-num">已选 / 容量</th><th></th></tr>
+        </thead>
+        <tbody>
+          <% courses.forEach(function (c) { %>
+            <tr>
+              <td>
+                <a class="strong-link" href="/teacher/courses/<%= c.id %>/students"><%= c.name %></a>
+                <div class="cell-sub"><code><%= c.code %></code></div>
+              </td>
+              <td class="col-num"><%= c.enrolled_count %> / <%= c.capacity %></td>
+              <td><a class="btn btn-sm" href="/teacher/courses/<%= c.id %>/students">名单</a></td>
+            </tr>
+          <% }); %>
+        </tbody>
+      </table>
+    <% } %>
+  </section>
+
+  <section class="panel">
+    <h2 class="panel-title">快捷入口</h2>
+    <div class="quick-links">
+      <a class="quick-link" href="/teacher/courses">
+        <span class="quick-name">我的课程</span>
+        <span class="quick-desc">查看全部所授课程与选课人数</span>
+      </a>
+      <a class="quick-link" href="/teacher/conflicts">
+        <span class="quick-name">授课时间冲突</span>
+        <span class="quick-desc">检查我所授课程之间是否撞车</span>
+      </a>
+      <a class="quick-link" href="/courses">
+        <span class="quick-name">课程查询</span>
+        <span class="quick-desc">浏览本学期全部课程</span>
+      </a>
+      <a class="quick-link" href="/announcements">
+        <span class="quick-name">公告通知</span>
+        <span class="quick-desc">查看选课相关通知</span>
+      </a>
+    </div>
+  </section>
+</div>
+
+<%- include('../partials/footer') %>

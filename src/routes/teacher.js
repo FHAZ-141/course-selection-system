@@ -1,14 +1,73 @@
 'use strict';
 
-const placeholder = require('./_placeholder');
+/**
+ * 教师端路由（规则 R7）
+ *
+ * 权限边界：只能查看**自己所授**课程的数据。
+ * 越权访问他人课程时返回 403（而不是 404，便于排查是权限问题而不是数据不存在）。
+ */
 
-module.exports = placeholder({
-  title: '教师端',
-  roles: ['teacher'],
-  endpoints: [
-    ['GET', '/teacher', '教师端首页'],
-    ['GET', '/teacher/courses', '我所授课程列表'],
-    ['GET', '/teacher/courses/:id/students', '课程选课名单与人数'],
-    ['GET', '/teacher/conflicts', '授课时间冲突提示（我讲授的课程之间是否撞车）']
-  ]
+const express = require('express');
+const teacherService = require('../services/teacherService');
+const format = require('../utils/format');
+const { requireLogin, requireRole } = require('../middleware/auth');
+
+const router = express.Router();
+
+router.use(requireLogin, requireRole('teacher'));
+
+/** 教师端首页 */
+router.get('/', (req, res) => {
+  res.render('teacher/home', {
+    title: '教师端',
+    stats: teacherService.overview(req.user.id),
+    courses: teacherService.listMyCourses(req.user.id).slice(0, 5),
+    fmt: format
+  });
 });
+
+/** 我所授课程 */
+router.get('/courses', (req, res) => {
+  res.render('teacher/course_list', {
+    title: '我的课程',
+    courses: teacherService.listMyCourses(req.user.id),
+    fmt: format
+  });
+});
+
+/** 某门课的选课名单 */
+router.get('/courses/:id/students', (req, res, next) => {
+  const data = teacherService.getCourseStudents(req.user.id, req.params.id);
+
+  if (!data) {
+    // 课程不存在，或不属于当前教师
+    const exists = require('../db').get('SELECT id FROM course WHERE id = ?', Number(req.params.id));
+    if (!exists) {
+      const err = new Error('课程不存在');
+      err.status = 404;
+      return next(err);
+    }
+    const err = new Error('你只能查看自己所授课程的选课名单');
+    err.status = 403;
+    return next(err);
+  }
+
+  return res.render('teacher/course_students', {
+    title: `选课名单 · ${data.course.name}`,
+    course: data.course,
+    enrolled: data.enrolled,
+    waiting: data.waiting,
+    fmt: format
+  });
+});
+
+/** 授课时间冲突提示 */
+router.get('/conflicts', (req, res) => {
+  res.render('teacher/conflicts', {
+    title: '授课时间冲突',
+    conflicts: teacherService.findMyConflicts(req.user.id),
+    fmt: format
+  });
+});
+
+module.exports = router;

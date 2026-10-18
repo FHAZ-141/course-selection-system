@@ -565,3 +565,26 @@ input:focus, select:focus, textarea:focus {
 
 .ct-row input[type="number"] { width: 78px; padding: 6px 8px; }
 .ct-row select { padding: 6px 8px; min-width: 90px; }
+
+/* ============================================================
+   教师端
+   ============================================================ */
+
+.conflict-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  background: var(--surface);
+}
+.conflict-card:last-child { margin-bottom: 0; }
+
+.conflict-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+.conflict-title { font-size: 14px; }
+.conflict-vs { margin: 0 8px; color: var(--text-faint); font-size: 12.5px; }

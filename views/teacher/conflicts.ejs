@@ -1,0 +1,63 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">授课时间冲突</h1>
+    <p class="page-sub">
+      <span class="muted">检查你所授课程之间是否存在同一时段撞车</span>
+    </p>
+  </div>
+  <span class="badge <%= conflicts.length > 0 ? 'badge-warn' : 'badge-ok' %> badge-lg">
+    <%= conflicts.length > 0 ? conflicts.length + ' 处冲突' : '无冲突' %>
+  </span>
+</div>
+
+<section class="panel">
+  <% if (conflicts.length === 0) { %>
+    <p class="empty">你所有的课程在时间上都没有重叠，可以放心。</p>
+    <p class="panel-note">
+      判定口径：星期相同、节次区间真正重叠、且周次有交集才算冲突；
+      相邻节次（如第 1-2 节与第 3-4 节）不算冲突，单周课与双周课也不算冲突。
+    </p>
+  <% } else { %>
+    <p class="panel-note">
+      以下课程的时间段互相重叠，建议联系教务处调整排课。判定口径：星期相同、节次重叠、周次有交集。
+    </p>
+
+    <% conflicts.forEach(function (item, index) { %>
+      <div class="conflict-card">
+        <div class="conflict-head">
+          <span class="badge badge-warn">冲突 <%= index + 1 %></span>
+          <span class="conflict-title">
+            <a class="strong-link" href="/teacher/courses/<%= item.a.course_id %>/students"><%= item.a.name %></a>
+            <span class="muted">（<code><%= item.a.code %></code>）</span>
+            <span class="conflict-vs">与</span>
+            <a class="strong-link" href="/teacher/courses/<%= item.b.course_id %>/students"><%= item.b.name %></a>
+            <span class="muted">（<code><%= item.b.code %></code>）</span>
+          </span>
+        </div>
+
+        <table class="table table-compact">
+          <thead>
+            <tr>
+              <th><%= item.a.name %></th>
+              <th></th>
+              <th><%= item.b.name %></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% item.pairs.forEach(function (pair) { %>
+              <tr>
+                <td><%= fmt.describeClassTime(pair.a) %></td>
+                <td class="muted">⟷</td>
+                <td><%= fmt.describeClassTime(pair.b) %></td>
+              </tr>
+            <% }); %>
+          </tbody>
+        </table>
+      </div>
+    <% }); %>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>
