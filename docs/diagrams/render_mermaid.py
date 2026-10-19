@@ -8,6 +8,7 @@
 用法：python render_mermaid.py <mmd文件> <输出目录>
 """
 
+import html
 import os
 import re
 import subprocess
@@ -68,18 +69,26 @@ def main():
     stem = mmd_path.stem
     source = strip_comments(mmd_path.read_text(encoding="utf-8")).strip()
 
+    # 必须转义：源码里的 <b> / <br/> 等会被浏览器当成 HTML 解析，导致
+    # "Opening and ending tag mismatch" 并让整张图渲染失败。
+    # 转义后浏览器会把实体还原成纯文本，Mermaid 仍能正确读到原始标签。
+    source_html = html.escape(source, quote=False)
+
     work = Path(tempfile.mkdtemp(prefix="mmd-render-"))
     html_path = work / "diagram.html"
     html_path.write_text(
         "<!DOCTYPE html><html lang='zh-CN'><head><meta charset='utf-8'>"
         "<style>body{margin:0;padding:24px;background:#ffffff;}"
-        "</style></head><body>"
-        f"<pre class='mermaid'>{source}</pre>"
+        "pre{margin:0;}</style></head><body>"
+        f"<pre class='mermaid'>{source_html}</pre>"
         f"<script src='file:///{MERMAID_JS}'></script>"
         "<script>mermaid.initialize({startOnLoad:true,theme:'default',"
+        # htmlLabels 必须关掉：开启时 Mermaid 用 foreignObject 输出 HTML（含未闭合的 <br>），
+        # 生成的 .svg 是非法 XML，浏览器打开会报 "Opening and ending tag mismatch"。
+        # 关掉后输出纯 <text>/<tspan>，SVG 合法，可直接嵌入 Word 或浏览器查看。
+        "flowchart:{useMaxWidth:false,htmlLabels:false},"
         "er:{layoutDirection:'TB',minEntityWidth:120,minEntityHeight:60,"
-        "entityPadding:14,useMaxWidth:false},"
-        "flowchart:{useMaxWidth:false}});</script>"
+        "entityPadding:14,useMaxWidth:false}});</script>"
         "</body></html>",
         encoding="utf-8",
     )

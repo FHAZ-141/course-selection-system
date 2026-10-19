@@ -11,7 +11,8 @@
     "smoke": "bash test/smoke.sh",
     "stress": "node test/stress-test.js",
     "test:conflict": "node test/conflict-test.js",
-    "launch": "node start.js"
+    "launch": "node start.js",
+    "pack:submission": "node scripts/pack-submission.js"
   },
   "engines": {
     "node": ">=20"

@@ -1,0 +1,131 @@
+%% ============================================================
+%%  选课系统 · 类图（U2）
+%%
+%%  粒度说明（方案 A · 结构级）：
+%%    · 只表达"有哪些类、怎么分层、谁依赖谁"，用于说明静态结构
+%%    · 服务类不展开方法（方法明细见 docs/02-概要设计说明书.md 第 5 节的职责表）
+%%      ——完整方法签名会把图拉到 3000px 宽，塞进文档后字号小到无法阅读
+%%    · 数据实体保留关键属性（对应数据库字段）
+%%    · 路由层与视图层不展开：它们只做参数转发与渲染，不承载业务规则
+%%
+%%  关系记号：
+%%    ..>  依赖（调用对方的方法）
+%%    --   关联（表间关系：1 对多）
+%% ============================================================
+
+classDiagram
+    direction TB
+
+    namespace 服务层 {
+        class CourseService {
+            <<service>>
+        }
+        class ClassTimeService {
+            <<service>>
+        }
+        class ConflictService {
+            <<service>>
+        }
+        class WindowService {
+            <<service>>
+        }
+        class EnrollmentService {
+            <<service>>
+        }
+        class AnnouncementService {
+            <<service>>
+        }
+        class AdminService {
+            <<service>>
+        }
+        class TeacherService {
+            <<service>>
+        }
+    }
+
+    namespace 工具层 {
+        class FormatUtil {
+            <<util>>
+        }
+        class PasswordUtil {
+            <<util>>
+        }
+        class UrlUtil {
+            <<util>>
+        }
+    }
+
+    namespace 数据访问层 {
+        class Database {
+            <<infrastructure>>
+        }
+    }
+
+    namespace 数据实体 {
+        class User {
+            +id
+            +username
+            +role
+            +name
+        }
+        class Semester {
+            +id
+            +name
+            +is_current
+        }
+        class Course {
+            +id
+            +code
+            +name
+            +teacher_id
+            +capacity
+            +status
+        }
+        class ClassTime {
+            +course_id
+            +day_of_week
+            +start_period
+            +end_period
+            +week_type
+        }
+        class Enrollment {
+            +student_id
+            +course_id
+            +status
+            +waitlist_joined_at
+        }
+        class Announcement {
+            +id
+            +title
+            +pinned
+        }
+    }
+
+    CourseService ..> Database
+    CourseService ..> ClassTimeService
+    CourseService ..> FormatUtil
+
+    ConflictService ..> Database
+    ConflictService ..> ClassTimeService
+
+    WindowService ..> Database
+
+    EnrollmentService ..> Database
+    EnrollmentService ..> ConflictService
+    EnrollmentService ..> WindowService
+
+    AnnouncementService ..> Database
+
+    AdminService ..> Database
+    AdminService ..> WindowService
+
+    TeacherService ..> Database
+    TeacherService ..> ConflictService
+    TeacherService ..> ClassTimeService
+
+    User "1" -- "0..*" Course : 讲授
+    User "1" -- "0..*" Enrollment : 选课
+    User "1" -- "0..*" Announcement : 发布
+    Semester "1" -- "0..*" Course : 开设
+    Course "1" -- "0..*" ClassTime : 排课
+    Course "1" -- "0..*" Enrollment : 被选
