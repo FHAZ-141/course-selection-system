@@ -1,0 +1,39 @@
+%% ============================================================
+%%  选课系统 · 界面导航图（补充图，D3 第 5.1 节）
+%%
+%%  说明：展示三类角色可到达的页面及其层级关系。
+%%        方括号内为 URL 路径；带 "/**" 表示该页下的子页面。
+%% ============================================================
+
+flowchart TD
+    LOGIN["登录页<br/>/login"] --> HOME["首页仪表盘<br/>/<br/>（按角色展示不同内容）"]
+
+    HOME --> SR["学生"]
+    HOME --> TR["教师"]
+    HOME --> AR["管理员"]
+
+    SR --> S1["课程查询<br/>/courses"]
+    S1 --> S1a["课程详情<br/>/courses/:id"]
+    SR --> S2["我的选课<br/>/enrollments/my"]
+    SR --> S3["公告列表<br/>/announcements"]
+    S3 --> S3a["公告详情<br/>/announcements/:id"]
+
+    TR --> T1["我的课程<br/>/teacher/courses"]
+    T1 --> T1a["选课名单<br/>/teacher/courses/:id/students"]
+    TR --> T2["授课时间冲突<br/>/teacher/conflicts"]
+    TR --> S1
+    TR --> S3
+
+    AR --> A0["后台概览<br/>/admin"]
+    A0 --> A1["课程管理<br/>/admin/courses"]
+    A1 --> A1a["新增 / 编辑课程<br/>/admin/courses/new · /:id/edit"]
+    A0 --> A2["选课窗口配置<br/>/admin/semester"]
+    A0 --> A3["公告管理<br/>/admin/announcements"]
+    A0 --> A4["选课统计<br/>/admin/enrollments"]
+    AR --> S1
+    AR --> S3
+
+    classDef role fill:#e8f1e4,stroke:#5a8a4a,stroke-width:1px,color:#1f2937
+    classDef page fill:#eef3fb,stroke:#4a6fa5,stroke-width:1px,color:#1f2937
+    class SR,TR,AR role
+    class LOGIN,HOME,S1,S1a,S2,S3,S3a,T1,T1a,T2,A0,A1,A1a,A2,A3,A4 page

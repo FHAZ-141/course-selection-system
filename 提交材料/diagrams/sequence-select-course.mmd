@@ -1,0 +1,79 @@
+%% ============================================================
+%%  选课系统 · 选课时序图（U3）
+%%
+%%  对应：D1 FR-02 / D3 第 4.1 节
+%%  要点：五步校验全部在同一个事务内完成（BEGIN IMMEDIATE 取写锁）
+%% ============================================================
+
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    participant R as 路由层<br/>routes/enrollments.js
+    participant E as EnrollmentService
+    participant W as WindowService
+    participant C as ConflictService
+    participant D as Database
+
+    S->>R: POST /enrollments（courseId）
+    R->>R: requireLogin + requireRole('student')
+    R->>E: enroll(studentId, courseId)
+
+    Note over E,D: 以下全部步骤在同一个事务内（BEGIN IMMEDIATE，全程持写锁）
+
+    E->>D: 查询课程与当前已选人数
+    D-->>E: course（含 capacity）
+
+    E->>W: getWindowState(semester)
+    W-->>E: { open, code, label }
+    Note right of E: ① 窗口校验（B2）
+
+    alt 窗口未开放
+        E-->>R: { ok:false, code:'WINDOW_CLOSED' }
+    else 窗口开放
+        opt 课程已停开
+            E-->>R: { ok:false, code:'COURSE_CLOSED' }
+        end
+        Note right of E: ② 课程状态校验
+
+        E->>D: 查该生对该课的 enrollment 记录
+        D-->>E: existing（enrolled / waiting / dropped / null）
+        Note right of E: ③ 重复选课校验
+
+        alt 已选中或已在候补
+            E-->>R: { ok:false, code:'ALREADY_ENROLLED' 或 'ALREADY_WAITING' }
+        else 未选过（或曾退课）
+            E->>C: findStudentConflicts(studentId, courseId)
+            C->>D: 读取该生已选课程的全部排课
+            D-->>C: 排课集合
+            C->>C: 逐段比对 星期 + 节次 + 周次
+            C-->>E: conflicts[]（含冲突课程名）
+            Note right of E: ④ 时间冲突校验（C1~C3）
+
+            alt 存在冲突
+                E-->>R: { ok:false, code:'CONFLICT' }
+            else 无冲突
+                E->>D: COUNT(*) WHERE status='enrolled'
+                D-->>E: enrolledCount
+                Note right of E: ⑤ 余量判定（实时计数，不用页面旧值）
+
+                alt enrolledCount 小于 capacity
+                    E->>D: 写入 status='enrolled'
+                    E-->>R: { ok:true, code:'ENROLLED' }
+                else 已满员
+                    E->>D: COUNT(*) WHERE status='waiting'
+                    D-->>E: waitingCount
+                    alt waitingCount 小于 capacity
+                        E->>D: 写入 status='waiting'<br/>waitlist_joined_at = now
+                        E-->>R: { ok:true, code:'WAITLISTED', position }
+                    else 候补队列已满
+                        E-->>R: { ok:false, code:'WAITLIST_FULL' }
+                    end
+                end
+            end
+        end
+    end
+
+    Note over E,D: 任一步失败即回滚；全部通过则提交
+
+    R->>R: req.session.flash = { type, message }
+    R-->>S: 302 重定向回来源页 + 提示

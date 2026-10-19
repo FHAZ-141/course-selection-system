@@ -1,0 +1,65 @@
+%% ============================================================
+%%  选课系统 · 退课时序图（U4）
+%%
+%%  对应：D1 FR-03 / FR-07、D3 第 4.2 节
+%%  要点：
+%%    · 退课**不校验选课窗口**（B3）
+%%    · 退课后立即尝试补位，补位同样不受窗口影响（R3）
+%%    · 补位时若队首与其他课冲突，跳过并顺延，该生保留队列位置
+%% ============================================================
+
+sequenceDiagram
+    autonumber
+    actor S as 学生
+    participant R as 路由层<br/>routes/enrollments.js
+    participant E as EnrollmentService
+    participant C as ConflictService
+    participant D as Database
+
+    S->>R: POST /enrollments/:courseId/drop
+    R->>R: requireLogin + requireRole('student')
+    R->>E: drop(studentId, courseId)
+
+    Note over E,D: 以下在同一个事务内
+
+    E->>D: 查询该生对该课的记录
+    D-->>E: existing
+
+    alt 不是 enrolled 状态
+        E-->>R: { ok:false, code:'NOT_ENROLLED' }
+    else 处于 enrolled
+        E->>D: UPDATE status='dropped'<br/>waitlist_joined_at = NULL
+        Note right of E: 退课不判断选课窗口（B3）
+
+        E->>E: promoteNext(courseId)
+        Note over E: 开始尝试补位（R3，不判断窗口）
+
+        E->>D: COUNT(*) WHERE status='enrolled'
+        D-->>E: enrolledCount
+
+        alt 已选人数仍达容量
+            E->>E: 无空缺，直接结束
+        else 有空缺
+            E->>D: 取候补队列 ORDER BY waitlist_joined_at, id
+            D-->>E: queue[]
+            loop 从队首向后遍历
+                E->>C: findStudentConflicts(队首学生, courseId)
+                C-->>E: conflicts[]
+                alt 该生有冲突
+                    Note right of E: 跳过并顺延，其队列位置保留
+                else 无冲突
+                    E->>D: UPDATE status='enrolled'
+                    E->>D: 查询该生姓名（用于提示）
+                    D-->>E: promotedStudent
+                    Note right of E: 一次退课只补一个人
+                end
+            end
+        end
+
+        E-->>R: { ok:true, code:'DROPPED', promoted }
+    end
+
+    Note over E,D: 提交事务
+
+    R->>R: flash = 已退选，[候选同学已自动补位]
+    R-->>S: 302 重定向 + 提示

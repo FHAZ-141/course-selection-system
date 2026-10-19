@@ -9,7 +9,13 @@
 | U7 | ER 图 | `er-diagram.mmd` | `er-diagram.png` / `.svg` | ✅ 已产出 |
 | U1 | 用例图 | `use-case.mmd` | `use-case.png` / `.svg` | ✅ 已产出 |
 | U2 | 类图 | `class-diagram.mmd` | `class-diagram.png` / `.svg` | ✅ 已产出 |
-| — | 分层架构图（D2 正文用） | `architecture-layers.mmd` | `architecture-layers.png` / `.svg` | ✅ 已产出 |
+| U3 | 选课时序图 | `sequence-select-course.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
+| U4 | 退课时序图 | `sequence-drop-course.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
+| U5 | 冲突校验活动图 | `activity-conflict-check.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
+| U6 | 选课记录状态图 | `state-course-selection.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
+| — | 分层架构图（D2 用） | `architecture-layers.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
+| — | 候补补位活动图（D3 用） | `activity-promote-waitlist.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
+| — | 界面导航图（D3 用） | `ui-sitemap.mmd` | 同名 `.png` / `.svg` | ✅ 已产出 |
 | U3 | 选课时序图 | `sequence-select-course.mmd` | `sequence-select-course.png` | 待产出 |
 | U4 | 退课时序图 | `sequence-drop-course.mmd` | `sequence-drop-course.png` | 待产出 |
 | U5 | 冲突校验活动图 | `activity-conflict-check.mmd` | `activity-conflict-check.png` | 待产出 |
