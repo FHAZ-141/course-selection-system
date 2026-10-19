@@ -27,7 +27,8 @@ const DOCS = [
   { file: '02-概要设计说明书.md', desc: '分层架构、模块划分、关键设计决策、部署结构' },
   { file: '03-详细设计说明书.md', desc: '类设计、4 个关键算法、6 张动态行为图、界面设计与错误码' },
   { file: '04-数据库设计文档.md', desc: 'ER 图、7 张表逐字段说明、约束与索引、容量估算' },
-  { file: '05-测试用例与测试报告.md', desc: '118 条用例与实测结果、9 个缺陷记录、覆盖率分析与未覆盖项' }
+  { file: '05-测试用例与测试报告.md', desc: '118 条用例与实测结果、9 个缺陷记录、覆盖率分析与未覆盖项' },
+  { file: '06-项目总结报告.md', desc: '开发过程回顾、技术难点、问题与教训、不足与改进方向' }
 ];
 
 /** 需要打包的图表（每张含 .mmd 源文件 + .png + .svg） */
@@ -44,10 +45,8 @@ const DIAGRAMS = [
   { name: 'er-diagram', code: 'U7', title: '数据库 ER 图', where: 'D4 第三节' }
 ];
 
-/** 尚未产出的交付物，在 README 里如实标注 */
-const PENDING = [
-  ['D6', '项目总结报告']
-];
+/** 尚未产出的交付物，在 README 里如实标注（全部完成后为空数组） */
+const PENDING = [];
 
 function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true });
@@ -113,7 +112,9 @@ function buildReadme(report) {
     .map((d) => `| ${d.code} | ${d.title} | \`diagrams/${d.name}.png\` | ${d.where} |`)
     .join('\n');
 
-  const pendingRows = PENDING.map(([code, name]) => `| ${code} | ${name} | ⬜ 待产出 |`).join('\n');
+  const pendingRows = PENDING.length
+    ? PENDING.map(([code, name]) => `| ${code} | ${name} | ⬜ 待产出 |`).join('\n')
+    : '| — | 全部 14 项交付物均已产出 | ✅ |';
 
   return `# 提交材料
 
@@ -158,13 +159,14 @@ ${figRows}
 
 ![数据库 ER 图](diagrams/er-diagram.png)
 
-## 三、尚未产出的交付物
+## 三、交付物完成情况
 
 | 编号 | 名称 | 状态 |
 | --- | --- | --- |
 ${pendingRows}
 
-> 上表按软件工程流程的正常顺序，尚未完成的部分会在产出后补入本目录。
+> 完整清单含 6 份文档（D0~D6 中除 D0 外的正文）与 7 张 UML 图（U1~U7），
+> 另有 3 张辅助图（分层架构、补位活动、界面导航）。
 
 ## 四、运行方式
 
