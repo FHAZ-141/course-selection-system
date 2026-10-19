@@ -123,7 +123,7 @@ U1~U7 **全部已产出**（见 2.3 节）。如需补充，优先考虑：
 
 | 事项 | 说明 |
 | --- | --- |
-| F3 上线演示 | **进行中**：已做完部署适配（`render.yaml` + `npm run start:prod` + 部署指南），待用户在 Render 建服务并回填地址 |
+| F3 上线演示 | ✅ **已完成**：<https://course-selection-system-8xwy.onrender.com>（Render 免费实例，Blueprint 管理） |
 | 执行计划量化 | 未用 `EXPLAIN QUERY PLAN` 对比索引前后（D4 已记为 L2） |
 | 会话持久化 | 当前 session 存内存，重启后所有人被登出 |
 
@@ -183,7 +183,7 @@ python docs/diagrams/render_mermaid.py docs/diagrams/use-case.mmd docs/diagrams
 
 | 优先级 | 事项 | 说明 |
 | --- | --- | --- |
-| 高 | F3 上线演示链接 | 代码侧已就绪（`render.yaml` + `start:prod`），只剩在 Render 建服务；地址拿到后回填 README 与 D6 |
+| ✅ | F3 上线演示链接 | 已部署：<https://course-selection-system-8xwy.onrender.com>，线上冒烟 77 项全过 |
 | 中 | 打包最终 zip 并挂到 Release | 用 `npm run pack:submission` 后压缩，或在网页上传 |
 | 低 | GAP-01 引入 Playwright | 补 UI 自动化（见 D5 第九节） |
 | 低 | GAP-02 接入行覆盖率 | `c8`，服务层目标 ≥ 70% |

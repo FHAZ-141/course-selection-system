@@ -47,8 +47,12 @@
 
 ## 四、快速开始
 
-> **在线演示**：已适配 Render 免费部署（`render.yaml` + `npm run start:prod`），
-> 部署步骤见 [`docs/dev/06-部署指南.md`](docs/dev/06-部署指南.md)。访问地址待部署完成后回填。
+> **在线演示**：<https://course-selection-system-8xwy.onrender.com>
+>
+> 演示账号（密码均为 `123456`）：`admin` 管理员 ｜ `T1001` 教师 ｜ `2024010101` 学生
+>
+> 部署在 Render 免费实例上，**15 分钟无访问会休眠**，首次打开需等待 30~60 秒；
+> 每次唤醒数据库会重建为初始演示数据。部署方式见 [`docs/dev/06-部署指南.md`](docs/dev/06-部署指南.md)。
 
 ### 环境要求
 
