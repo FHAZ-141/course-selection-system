@@ -47,6 +47,9 @@
 
 ## 四、快速开始
 
+> **在线演示**：已适配 Render 免费部署（`render.yaml` + `npm run start:prod`），
+> 部署步骤见 [`docs/dev/06-部署指南.md`](docs/dev/06-部署指南.md)。访问地址待部署完成后回填。
+
 ### 环境要求
 
 - Node.js ≥ 20（开发环境为 v22.22.2）

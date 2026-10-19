@@ -1,0 +1,32 @@
+# ============================================================
+#  Render 部署蓝图（Infrastructure as Code）
+#
+#  用法：Render 控制台 → New → Blueprint → 选择本仓库 → Apply
+#
+#  说明：
+#   · runtime 用 node（不用 Docker），符合需求 F2「不做 Docker 部署」
+#   · region 选 singapore，是 Render 离国内最近的节点
+#   · 免费计划没有持久磁盘：每次唤醒或重部署，SQLite 会被重建，
+#     所以 startCommand 里先跑 seed（幂等，有数据会跳过）
+#   · 健康检查指向 /health，与启动器用的是同一个端点
+# ============================================================
+
+services:
+  - type: web
+    name: course-selection-system
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: npm install
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      # 会话签名密钥，由 Render 自动生成随机值
+      - key: SESSION_SECRET
+        generateValue: true

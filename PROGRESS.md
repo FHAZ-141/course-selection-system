@@ -123,7 +123,7 @@ U1~U7 **全部已产出**（见 2.3 节）。如需补充，优先考虑：
 
 | 事项 | 说明 |
 | --- | --- |
-| F3 上线演示 | 需求要求生成在线可访问链接，尚未做（唯一未交付需求） |
+| F3 上线演示 | **进行中**：已做完部署适配（`render.yaml` + `npm run start:prod` + 部署指南），待用户在 Render 建服务并回填地址 |
 | 执行计划量化 | 未用 `EXPLAIN QUERY PLAN` 对比索引前后（D4 已记为 L2） |
 | 会话持久化 | 当前 session 存内存，重启后所有人被登出 |
 
@@ -183,10 +183,12 @@ python docs/diagrams/render_mermaid.py docs/diagrams/use-case.mmd docs/diagrams
 
 | 优先级 | 事项 | 说明 |
 | --- | --- | --- |
-| 高 | F3 上线演示链接 | 需求明确要求，是唯一未交付项；部署到托管平台后回填地址 |
+| 高 | F3 上线演示链接 | 代码侧已就绪（`render.yaml` + `start:prod`），只剩在 Render 建服务；地址拿到后回填 README 与 D6 |
 | 中 | 打包最终 zip 并挂到 Release | 用 `npm run pack:submission` 后压缩，或在网页上传 |
 | 低 | GAP-01 引入 Playwright | 补 UI 自动化（见 D5 第九节） |
 | 低 | GAP-02 接入行覆盖率 | `c8`，服务层目标 ≥ 70% |
+
+**部署参考**：`docs/dev/06-部署指南.md`（含免费版三个限制与排错表）。
 
 **每次产出文档后别忘了**：`npm run pack:submission` 重新生成 `提交材料/`。
 
