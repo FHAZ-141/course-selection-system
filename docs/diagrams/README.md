@@ -7,7 +7,7 @@
 | 编号 | 图表 | 源文件 | 导出图片 | 状态 |
 | --- | --- | --- | --- | --- |
 | U7 | ER 图 | `er-diagram.mmd` | `er-diagram.png` / `.svg` | ✅ 已产出 |
-| U1 | 用例图 | `use-case.mmd` | `use-case.png` | 待产出 |
+| U1 | 用例图 | `use-case.mmd` | `use-case.png` / `.svg` | ✅ 已产出 |
 | U2 | 类图 | `class-diagram.mmd` | `class-diagram.png` | 待产出 |
 | U3 | 选课时序图 | `sequence-select-course.mmd` | `sequence-select-course.png` | 待产出 |
 | U4 | 退课时序图 | `sequence-drop-course.mmd` | `sequence-drop-course.png` | 待产出 |
