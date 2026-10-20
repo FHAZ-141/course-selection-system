@@ -354,6 +354,15 @@ input:focus, select:focus, textarea:focus {
   border-top: 1px solid var(--border);
 }
 .demo-title { font-size: 12.5px; color: var(--text-muted); margin-bottom: 8px; }
+.demo-hint {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-muted);
+}
+.demo-hint p { margin: 6px 0 0; }
+.demo-hint p:first-child { margin-top: 0; }
+.demo-hint strong { color: var(--text); }
 
 /* ---------- 错误页 ---------- */
 .error-wrap {
