@@ -196,6 +196,9 @@ course-selection-system/
 
 详见 [`docs/README.md`](docs/README.md)。
 
+> **接手开发 / 换设备继续？先看 [`HANDOFF.md`](HANDOFF.md)** —— 一页讲清：项目现状、已定决策、
+> 想改什么去哪找、跑起来、踩过的坑、下一步优先级。比翻 3000 行文档快。
+
 ### 开发者文档
 
 面向**维护与扩展**的工程手册存放于 [`docs/dev/`](docs/dev/README.md)，回答"想改某个功能该动哪里"：
