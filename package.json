@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "start:prod": "node src/db/seed.js && node src/server.js",
+    "start:prod": "node src/db/seed.js --reset && node src/server.js",
     "init-db": "node src/db/seed.js",
     "reset-db": "node src/db/seed.js --reset",
     "smoke": "bash test/smoke.sh",
