@@ -16,7 +16,7 @@
     "pack:submission": "node scripts/pack-submission.js"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "license": "MIT",
   "dependencies": {
