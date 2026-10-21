@@ -23,8 +23,21 @@ module.exports = {
   },
 
   db: {
+    // 驱动选择（见 src/db/index.js）：
+    //   · DB_DRIVER=pg|sqlite  显式指定（用于回归测试）
+    //   · 否则：设置了 DATABASE_URL 走 PostgreSQL，未设置回退 SQLite
+    driver:
+      process.env.DB_DRIVER === 'pg' || process.env.DB_DRIVER === 'sqlite'
+        ? process.env.DB_DRIVER
+        : (process.env.DATABASE_URL ? 'pg' : 'sqlite'),
+
+    // SQLite 专用
     file: process.env.DB_FILE || path.join(ROOT_DIR, 'data', 'course-selection.sqlite'),
-    schemaFile: path.join(ROOT_DIR, 'src', 'db', 'schema.sql')
+    schemaFile: path.join(ROOT_DIR, 'src', 'db', 'schema.sql'),
+
+    // PostgreSQL 专用
+    pgSchemaFile: path.join(ROOT_DIR, 'src', 'db', 'schema.pg.sql'),
+    pgPoolMax: Number(process.env.PG_POOL_MAX) || 10
   },
 
   // 节次与时间段的对应关系，用于把「第 N 节」换算成可读时间

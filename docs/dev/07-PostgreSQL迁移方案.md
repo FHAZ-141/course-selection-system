@@ -96,12 +96,28 @@ module.exports = usePg ? require('./pg') : require('./sqlite');
 | `meta` | 主键类型 | `TEXT PRIMARY KEY` | 不变 |
 | `user` | 自增主键 | `INTEGER PRIMARY KEY AUTOINCREMENT` | `INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY` |
 | `semester` | 自增主键 + 布尔 | 同上；`is_current INTEGER CHECK (0,1)` | `SMALLINT DEFAULT 0 CHECK`（保留 0/1，避免改代码） |
-| `course` | 自增主键 + 学分类型 | `credits REAL` | `credits NUMERIC(3,1)` |
+| `course` | 自增主键 + 学分类型 | `credits REAL` | `credits DOUBLE PRECISION`（**不用 NUMERIC**：`node-postgres` 会把 NUMERIC 解析成字符串，而代码把学分当数字求和/格式化，会出错） |
 | `class_time` | 自增主键 | 同上 | 同上 |
 | `enrollment` | 自增主键 + 唯一约束 | `UNIQUE (student_id, course_id)` | 不变 |
 | `announcement` | 自增主键 + 布尔 | `pinned INTEGER CHECK (0,1)` | 同上 |
 
 **7 处 `AUTOINCREMENT`** 全部替换为 `GENERATED ALWAYS AS IDENTITY`。
+
+### 3.1.1 ⚠️ `user` 是 PostgreSQL 保留字（P0 执行时发现）
+
+`CREATE TABLE user (...)` 与 `SELECT * FROM user` 在 PG 下都会**语法错误**。
+本项目有 30+ 处 SQL 涉及该表，必须处理。
+
+| 位置 | 做法 |
+| --- | --- |
+| 建表 | `schema.pg.sql` 写作 `"user"`（带引号，确保表名为小写） |
+| 查询 | `pg.js` 的 `quoteReservedIdentifiers()` 在**表位置**（`FROM`/`JOIN`/`INTO`/`UPDATE` 之后）自动补引号 |
+| 为什么不逐条改 SQL | 30+ 处易漏，且污染业务代码 |
+| 为什么不重命名表 | 需同步改 SQLite schema、20+ 处 SQL、D4 与 U7 文档，收益不抵改动面 |
+
+**风险控制**：只在单词边界 + 前置关键字处匹配，不会误伤 `username`，也不会误伤字符串字面量（角色值为 `'student'`/`'teacher'`/`'admin'`）。已用 7 条单测覆盖典型写法。
+
+> 若 P2 阶段出现 `syntax error at or near "user"`，说明有未覆盖的写法，补规则即可。
 
 ### 3.2 索引与约束
 
