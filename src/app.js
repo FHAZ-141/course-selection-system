@@ -20,9 +20,20 @@ app.use(express.static(path.join(config.rootDir, 'public')));
 app.use(session(config.session));
 app.use(attachUser);
 
-// 健康检查（并发压测脚本与部署健康探测使用）
+// 健康检查（并发压测脚本、部署健康探测、发布核对使用）
+// 除 ok 外的字段都是**可观测信息**，用于确认"线上到底跑的是哪个提交、哪个 Node、哪个驱动"：
+//   node   —— 运行时版本（排查版本漂移）
+//   commit —— Render 自动注入的部署提交（本地运行为 null）
+//   db     —— 当前数据库驱动 sqlite / pg（迁移期间快速核对）
 app.get('/health', (req, res) => {
-  res.json({ ok: true, service: 'course-selection-system', time: new Date().toISOString() });
+  res.json({
+    ok: true,
+    service: 'course-selection-system',
+    time: new Date().toISOString(),
+    node: process.version,
+    commit: process.env.RENDER_GIT_COMMIT || null,
+    db: config.db.driver
+  });
 });
 
 app.use('/', require('./routes/index'));
