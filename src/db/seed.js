@@ -173,9 +173,12 @@ function nowIso(offsetMs = 0) {
 }
 
 async function dropAll() {
-  const tables = await db.all(
-    "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
-  );
+  // SQLite 与 PostgreSQL 的系统表不同，按驱动分别查询
+  const tables = config.db.driver === 'pg'
+    ? await db.all("SELECT tablename AS name FROM pg_tables WHERE schemaname = 'public'")
+    : await db.all(
+      "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
+    );
   await db.exec('PRAGMA foreign_keys = OFF');
   for (const { name } of tables) {
     await db.exec(`DROP TABLE IF EXISTS "${name}"`);
@@ -259,8 +262,10 @@ async function seed() {
     await db.run(ANNOUNCEMENT_SQL, title, content, adminId, pinned, createdAt);
   }
 
-  await db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')");
-  await db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('seeded_at', ?)", createdAt);
+  await db.run("INSERT INTO meta (key, value) VALUES ('schema_version', '1') " +
+    'ON CONFLICT (key) DO UPDATE SET value = excluded.value');
+  await db.run("INSERT INTO meta (key, value) VALUES ('seeded_at', ?) " +
+    'ON CONFLICT (key) DO UPDATE SET value = excluded.value', createdAt);
 }
 
 async function main() {
@@ -303,7 +308,9 @@ async function main() {
   for (const [key, value] of Object.entries(stats)) {
     console.log(`  ${key}：${value}`);
   }
-  console.log(`  数据库文件：${config.db.file}`);
+  console.log(config.db.driver === 'pg'
+    ? '  数据库：PostgreSQL（DATABASE_URL）'
+    : `  数据库文件：${config.db.file}`);
   console.log(`  演示账号密码：${DEMO_PASSWORD}`);
 }
 

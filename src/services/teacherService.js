@@ -19,17 +19,17 @@ async function overview(teacherId) {
     teacherId
   );
 
-  const enrolled = await db.get(
+  const enrolled = (await db.get(
     `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
       WHERE c.teacher_id = ? AND e.status = 'enrolled'`,
     teacherId
-  ).c;
+  )).c;
 
-  const waiting = await db.get(
+  const waiting = (await db.get(
     `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
       WHERE c.teacher_id = ? AND e.status = 'waiting'`,
     teacherId
-  ).c;
+  )).c;
 
   return {
     courseCount: Number(courses.total) || 0,

@@ -139,9 +139,10 @@ async function listCourses(options = {}) {
     semester,
     courses,
     filters: {
-      departments: db
-        .all('SELECT DISTINCT department AS d FROM course WHERE semester_id = ? AND department IS NOT NULL ORDER BY d', semester.id)
-        .map((r) => r.d),
+      departments: (await db.all(
+        'SELECT DISTINCT department AS d FROM course WHERE semester_id = ? AND department IS NOT NULL ORDER BY d',
+        semester.id
+      )).map((r) => r.d),
       teachers: await db.all(
         `SELECT DISTINCT u.id, u.name
            FROM course c JOIN user u ON u.id = c.teacher_id

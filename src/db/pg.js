@@ -26,8 +26,35 @@
 
 const fs = require('node:fs');
 const { AsyncLocalStorage } = require('node:async_hooks');
-const { Pool } = require('pg');
+const { Pool, types } = require('pg');
 const config = require('../config');
+
+/**
+ * 类型解析修正（与 SQLite 驱动保持一致的 JS 类型）：
+ *
+ * PostgreSQL 的 int8（bigint）默认被解析成**字符串**，而 SELECT COUNT(*) 返回的就是 int8。
+ * 若不处理，业务代码里的 `count < capacity` 会变成字符串与数字比较（"112" < 45 恒为 false），
+ * 表现为"所有课程都显示已满"、候补位次算出 NaN。
+ *
+ * 这里把 int8 解析为 Number —— 本项目所有计数都在 Number 安全范围内（< 2^53）。
+ */
+types.setTypeParser(20, (value) => (value === null ? null : Number(value)));
+
+/**
+ * 参数规整（对齐 sqlite 驱动）：
+ * · undefined → null：node-postgres 会把 undefined 当"未指定类型"发送，
+ *   PG 无法推断时直接报 `could not determine data type of parameter $n`
+ * · boolean → 0/1：本项目 schema 用 SMALLINT 存布尔（is_current / pinned）
+ */
+function normalizeParams(params) {
+  return params.map(normalizeValue);
+}
+
+function normalizeValue(value) {
+  if (value === undefined) return null;
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  return value;
+}
 
 /** 当前异步上下文中的事务连接；不在事务内时为 undefined */
 const txStorage = new AsyncLocalStorage();
@@ -107,6 +134,18 @@ async function exec(sql) {
 }
 
 /**
+ * 有自增 id 的表。只有 INSERT 进这些表时才补 `RETURNING id`。
+ * `meta` 表主键是 key，没有 id 列 —— 若无条件追加会报 column "id" does not exist。
+ */
+const ID_TABLES = new Set(['user', 'semester', 'course', 'class_time', 'enrollment', 'announcement']);
+
+/** 从 INSERT 语句里取目标表名（去掉引号），取不到返回 null */
+function insertTargetTable(sql) {
+  const m = /^\s*INSERT\s+INTO\s+("?)([A-Za-z_][A-Za-z0-9_]*)\1/i.exec(sql);
+  return m ? m[2].toLowerCase() : null;
+}
+
+/**
  * 执行写语句。
  * 返回 { changes, lastInsertRowid }，与 SQLite 驱动保持一致。
  */
@@ -115,11 +154,12 @@ async function run(sql, ...params) {
 
   const isInsert = /^\s*INSERT\s+INTO/i.test(sql);
   const hasReturning = /\bRETURNING\b/i.test(sql);
-  if (isInsert && !hasReturning) {
+  const table = insertTargetTable(sql);
+  if (isInsert && !hasReturning && table && ID_TABLES.has(table)) {
     text = `${sql.trimEnd().replace(/;+\s*$/, '')} RETURNING id`;
   }
 
-  const result = await executor().query(toDriverSql(text), params);
+  const result = await executor().query(toDriverSql(text), normalizeParams(params));
   const firstRow = result.rows && result.rows[0];
 
   return {
@@ -130,13 +170,13 @@ async function run(sql, ...params) {
 
 /** 取单行；无结果返回 undefined（与 SQLite 驱动的行为一致） */
 async function get(sql, ...params) {
-  const result = await executor().query(toDriverSql(sql), params);
+  const result = await executor().query(toDriverSql(sql), normalizeParams(params));
   return result.rows[0];
 }
 
 /** 取多行；无结果返回空数组 */
 async function all(sql, ...params) {
-  const result = await executor().query(toDriverSql(sql), params);
+  const result = await executor().query(toDriverSql(sql), normalizeParams(params));
   return result.rows;
 }
 

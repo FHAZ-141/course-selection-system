@@ -35,18 +35,18 @@ function toCourseId(value) {
 
 /** 已选人数（算余量的唯一口径） */
 async function countEnrolled(courseId) {
-  return await db.get(
+  return (await db.get(
     "SELECT COUNT(*) AS c FROM enrollment WHERE course_id = ? AND status = 'enrolled'",
     courseId
-  ).c;
+  )).c;
 }
 
 /** 候补人数 */
 async function countWaiting(courseId) {
-  return await db.get(
+  return (await db.get(
     "SELECT COUNT(*) AS c FROM enrollment WHERE course_id = ? AND status = 'waiting'",
     courseId
-  ).c;
+  )).c;
 }
 
 async function getCourseRow(courseId) {
@@ -68,7 +68,7 @@ async function waitlistPosition(courseId, studentId) {
   );
   if (!me) return 0;
 
-  const ahead = await db.get(
+  const ahead = (await db.get(
     `SELECT COUNT(*) AS c FROM enrollment
       WHERE course_id = ? AND status = 'waiting'
         AND (waitlist_joined_at < ? OR (waitlist_joined_at = ? AND id < ?))`,
@@ -76,7 +76,7 @@ async function waitlistPosition(courseId, studentId) {
     me.waitlist_joined_at,
     me.waitlist_joined_at,
     me.id
-  ).c;
+  )).c;
   return ahead + 1;
 }
 
@@ -96,7 +96,7 @@ async function upsertEnrollment(existing, studentId, courseId, status, waitlistJ
     );
     return existing.id;
   }
-  return await db.run(
+  return (await db.run(
     `INSERT INTO enrollment (student_id, course_id, status, waitlist_joined_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     studentId,
@@ -105,7 +105,7 @@ async function upsertEnrollment(existing, studentId, courseId, status, waitlistJ
     waitlistJoinedAt,
     now,
     now
-  ).lastInsertRowid;
+  )).lastInsertRowid;
 }
 
 /**

@@ -112,11 +112,11 @@ async function main() {
   // 2) 造一门用于冲击的小容量课程（容量 3，且不排课 → 不会与他人冲突）
   const semester = await db.get('SELECT * FROM semester WHERE is_current = 1');
   const teacher = await db.get("SELECT id FROM user WHERE role = 'teacher' ORDER BY id LIMIT 1");
-  const courseId = await db.run(
+  const courseId = (await db.run(
     `INSERT INTO course (code, name, teacher_id, semester_id, department, credits, capacity, location, description, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     'TEST01', '并发测试课程', teacher.id, semester.id, '计算机学院', 1.0, 3, '测试教室', '并发验证用', 'open', nowIso()
-  ).lastInsertRowid;
+  )).lastInsertRowid;
 
   const students = await db.all("SELECT id, username, name FROM user WHERE role = 'student' ORDER BY id LIMIT 10");
   const CAPACITY = 3;

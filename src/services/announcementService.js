@@ -59,14 +59,14 @@ async function create({ title, content, pinned, authorId }) {
     return { ok: false, code: 'CONTENT_TOO_LONG', message: `内容不能超过 ${CONTENT_MAX} 字` };
   }
 
-  const id = await db.run(
+  const id = (await db.run(
     'INSERT INTO announcement (title, content, author_id, pinned, created_at) VALUES (?, ?, ?, ?, ?)',
     t,
     c,
     authorId,
     pinned ? 1 : 0,
     nowIso()
-  ).lastInsertRowid;
+  )).lastInsertRowid;
 
   return { ok: true, code: 'CREATED', message: `公告「${t}」已发布`, data: { id } };
 }

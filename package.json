@@ -13,7 +13,10 @@
     "stress": "node test/stress-test.js",
     "test:conflict": "node test/conflict-test.js",
     "launch": "node start.js",
-    "pack:submission": "node scripts/pack-submission.js"
+    "pack:submission": "node scripts/pack-submission.js",
+    "start:pg": "node --env-file=.env src/server.js",
+    "init-db:pg": "node --env-file=.env src/db/seed.js",
+    "reset-db:pg": "node --env-file=.env src/db/seed.js --reset"
   },
   "engines": {
     "node": "22.x"

@@ -94,13 +94,12 @@ async function listTeachers() {
   );
 }
 
-function listDepartments(semesterId) {
-  return db
-    .all(
-      'SELECT DISTINCT department AS d FROM course WHERE semester_id = ? AND department IS NOT NULL ORDER BY d',
-      semesterId
-    )
-    .map((r) => r.d);
+async function listDepartments(semesterId) {
+  const rows = await db.all(
+    'SELECT DISTINCT department AS d FROM course WHERE semester_id = ? AND department IS NOT NULL ORDER BY d',
+    semesterId
+  );
+  return rows.map((r) => r.d);
 }
 
 // ---------------------------------------------------------------- 课程
@@ -215,12 +214,12 @@ async function saveCourse(input) {
   if (!semester) return fail('SEMESTER_NOT_FOUND', '请先配置学期');
 
   const code = String(input.code).trim().toUpperCase();
-  const duplicated = await db.get(
-    'SELECT id, code FROM course WHERE code = ? AND (? IS NULL OR id <> ?)',
-    code,
-    courseId,
-    courseId
-  );
+  // 注意：不能写成 `WHERE code = ? AND (? IS NULL OR id <> ?)`
+  // PostgreSQL 无法推断"只用于 IS NULL 比较"的参数类型，会报
+  // could not determine data type of parameter $n。这里按有无 id 分别查。
+  const duplicated = courseId
+    ? await db.get('SELECT id, code FROM course WHERE code = ? AND id <> ?', code, courseId)
+    : await db.get('SELECT id, code FROM course WHERE code = ?', code);
   if (duplicated) return fail('CODE_DUPLICATED', `课程代码 ${code} 已被占用`);
 
   const times = input.classTimes || [];
@@ -253,7 +252,7 @@ async function saveCourse(input) {
       // 排课整体替换
       await db.run('DELETE FROM class_time WHERE course_id = ?', id);
     } else {
-      id = await db.run(
+      id = (await db.run(
         `INSERT INTO course (code, name, teacher_id, semester_id, department, credits,
                              capacity, location, description, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -268,7 +267,7 @@ async function saveCourse(input) {
         input.description ? String(input.description).trim() : null,
         input.status === 'closed' ? 'closed' : 'open',
         now
-      ).lastInsertRowid;
+      )).lastInsertRowid;
     }
 
     for (const t of times) {
@@ -302,10 +301,10 @@ async function deleteCourse(courseId) {
   const course = await db.get('SELECT id, code, name FROM course WHERE id = ?', id);
   if (!course) return fail('NOT_FOUND', '课程不存在');
 
-  const enrolled = await db.get(
+  const enrolled = (await db.get(
     "SELECT COUNT(*) AS c FROM enrollment WHERE course_id = ? AND status IN ('enrolled','waiting')",
     id
-  ).c;
+  )).c;
   if (enrolled > 0) {
     return fail(
       'HAS_ENROLLMENTS',
@@ -323,9 +322,8 @@ async function deleteCourse(courseId) {
 // ---------------------------------------------------------------- 统计
 
 /** 各课程的选课与候补统计 */
-function enrollmentStats(semesterId) {
-  return db
-    .all(
+async function enrollmentStats(semesterId) {
+  const rows = await db.all(
       `SELECT c.id, c.code, c.name, c.capacity, u.name AS teacher_name,
               (SELECT COUNT(*) FROM enrollment e
                 WHERE e.course_id = c.id AND e.status = 'enrolled') AS enrolled_count,
@@ -335,38 +333,38 @@ function enrollmentStats(semesterId) {
         WHERE c.semester_id = ?
         ORDER BY enrolled_count DESC, c.code`,
       semesterId
-    )
-    .map((r) => ({
-      ...r,
-      capacity: Number(r.capacity),
-      enrolled_count: Number(r.enrolled_count),
-      waitlist_count: Number(r.waitlist_count),
-      loadRate: Number(r.capacity) > 0
-        ? Math.round((Number(r.enrolled_count) / Number(r.capacity)) * 100)
-        : 0
-    }));
+  );
+  return rows.map((r) => ({
+    ...r,
+    capacity: Number(r.capacity),
+    enrolled_count: Number(r.enrolled_count),
+    waitlist_count: Number(r.waitlist_count),
+    loadRate: Number(r.capacity) > 0
+      ? Math.round((Number(r.enrolled_count) / Number(r.capacity)) * 100)
+      : 0
+  }));
 }
 
 /** 后台概览数字 */
 async function overview(semesterId) {
   return {
     courseCount: (await db.get('SELECT COUNT(*) AS c FROM course WHERE semester_id = ?', semesterId)).c,
-    openCount: await db.get(
+    openCount: (await db.get(
       "SELECT COUNT(*) AS c FROM course WHERE semester_id = ? AND status = 'open'",
       semesterId
-    ).c,
+    )).c,
     studentCount: (await db.get("SELECT COUNT(*) AS c FROM user WHERE role = 'student'")).c,
     teacherCount: (await db.get("SELECT COUNT(*) AS c FROM user WHERE role = 'teacher'")).c,
-    enrolledCount: await db.get(
+    enrolledCount: (await db.get(
       `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
         WHERE c.semester_id = ? AND e.status = 'enrolled'`,
       semesterId
-    ).c,
-    waitingCount: await db.get(
+    )).c,
+    waitingCount: (await db.get(
       `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
         WHERE c.semester_id = ? AND e.status = 'waiting'`,
       semesterId
-    ).c,
+    )).c,
     announcementCount: (await db.get('SELECT COUNT(*) AS c FROM announcement')).c
   };
 }
