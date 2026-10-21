@@ -7,7 +7,7 @@ const { safeInternalPath } = require('../utils/url');
 
 const router = express.Router();
 
-router.get('/login', (req, res) => {
+router.get('/login', async (req, res) => {
   if (req.user) return res.redirect('/');
   res.render('login', {
     title: '登录',
@@ -17,12 +17,12 @@ router.get('/login', (req, res) => {
   });
 });
 
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
   const username = String(req.body.username || '').trim();
   const password = String(req.body.password || '');
   const next = safeInternalPath(req.body.next, '/');
 
-  const user = db.get('SELECT * FROM user WHERE username = ?', username);
+  const user = await db.get('SELECT * FROM user WHERE username = ?', username);
 
   if (!user || !verifyPassword(password, user.password_salt, user.password_hash)) {
     return res.status(401).render('login', {

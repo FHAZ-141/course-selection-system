@@ -172,48 +172,48 @@ function nowIso(offsetMs = 0) {
   return new Date(Date.now() + offsetMs).toISOString().replace('T', ' ').slice(0, 19);
 }
 
-function dropAll() {
-  const tables = db.all(
+async function dropAll() {
+  const tables = await db.all(
     "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'"
   );
-  db.exec('PRAGMA foreign_keys = OFF');
+  await db.exec('PRAGMA foreign_keys = OFF');
   for (const { name } of tables) {
-    db.exec(`DROP TABLE IF EXISTS "${name}"`);
+    await db.exec(`DROP TABLE IF EXISTS "${name}"`);
   }
-  db.exec('PRAGMA foreign_keys = ON');
+  await db.exec('PRAGMA foreign_keys = ON');
 }
 
-function seed() {
+async function seed() {
   const createdAt = nowIso();
   const { salt, hash } = hashPassword(DEMO_PASSWORD);
 
-  const insertUser = (username, name, role, department, grade) =>
-    db.run(
+  const insertUser = async (username, name, role, department, grade) =>
+    (await db.run(
       `INSERT INTO user (username, password_hash, password_salt, name, role, department, grade, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       username, hash, salt, name, role, department, grade, createdAt
-    ).lastInsertRowid;
+    )).lastInsertRowid;
 
-  const adminId = insertUser('admin', '系统管理员', 'admin', '教务处', null);
+  const adminId = await insertUser('admin', '系统管理员', 'admin', '教务处', null);
 
   const teacherIds = {};
   for (const [username, name, department] of TEACHERS) {
-    teacherIds[username] = insertUser(username, name, 'teacher', department, null);
+    teacherIds[username] = await insertUser(username, name, 'teacher', department, null);
   }
 
   const studentIds = {};
   for (const [username, name] of STUDENTS) {
     const grade = Number(username.slice(0, 4));
-    studentIds[username] = insertUser(username, name, 'student', DEPARTMENTS.CS, grade);
+    studentIds[username] = await insertUser(username, name, 'student', DEPARTMENTS.CS, grade);
   }
 
   // 学期与选课窗口（B2：管理员可配置；此处预置为「正在开放中」）
-  const semesterId = db.run(
+  const semesterId = (await db.run(
     `INSERT INTO semester (name, start_date, total_weeks, select_open_at, select_close_at, is_current)
      VALUES (?, ?, ?, ?, ?, ?)`,
     '2026-2027 学年第一学期', '2026-09-07', 16,
     nowIso(-7 * 24 * 3600 * 1000), nowIso(14 * 24 * 3600 * 1000), 1
-  ).lastInsertRowid;
+  )).lastInsertRowid;
 
   const courseIds = {};
   const COURSE_SQL =
@@ -226,15 +226,15 @@ function seed() {
   for (const [code, name, teacherUsername, credits, capacity, department, location, times] of COURSES) {
     // CS112 演示「停开」状态
     const status = code === 'CS112' ? 'closed' : 'open';
-    const courseId = db.run(
+    const courseId = (await db.run(
       COURSE_SQL,
       code, name, teacherIds[teacherUsername], semesterId, department,
       credits, capacity, location, `${name}（${code}）`, status, createdAt
-    ).lastInsertRowid;
+    )).lastInsertRowid;
     courseIds[code] = courseId;
 
     for (const [day, startPeriod, endPeriod, weekType, startWeek, endWeek] of times) {
-      db.run(CLASS_TIME_SQL, courseId, day, startPeriod, endPeriod, weekType, startWeek, endWeek);
+      await db.run(CLASS_TIME_SQL, courseId, day, startPeriod, endPeriod, weekType, startWeek, endWeek);
     }
   }
 
@@ -242,7 +242,7 @@ function seed() {
     `INSERT INTO enrollment (student_id, course_id, status, waitlist_joined_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`;
   for (const [username, code, status] of PRELOADED_ENROLLMENTS) {
-    db.run(
+    await db.run(
       ENROLLMENT_SQL,
       studentIds[username],
       courseIds[code],
@@ -256,14 +256,14 @@ function seed() {
   const ANNOUNCEMENT_SQL =
     'INSERT INTO announcement (title, content, author_id, pinned, created_at) VALUES (?, ?, ?, ?, ?)';
   for (const [title, content, pinned] of ANNOUNCEMENTS) {
-    db.run(ANNOUNCEMENT_SQL, title, content, adminId, pinned, createdAt);
+    await db.run(ANNOUNCEMENT_SQL, title, content, adminId, pinned, createdAt);
   }
 
-  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')");
-  db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('seeded_at', ?)", createdAt);
+  await db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('schema_version', '1')");
+  await db.run("INSERT OR REPLACE INTO meta (key, value) VALUES ('seeded_at', ?)", createdAt);
 }
 
-function main() {
+async function main() {
   const reset = process.argv.includes('--reset');
 
   if (reset && fs.existsSync(config.db.file)) {
@@ -273,30 +273,30 @@ function main() {
     console.log(`已删除旧数据库：${config.db.file}`);
   }
 
-  db.initSchema();
+  await db.initSchema();
 
-  const existing = db.get('SELECT COUNT(*) AS c FROM user').c;
+  const existing = (await db.get('SELECT COUNT(*) AS c FROM user')).c;
   if (existing > 0 && !reset) {
     console.log(`数据库已有 ${existing} 个用户，跳过写入。如需重建请执行：npm run reset-db`);
     return;
   }
 
   if (reset) {
-    dropAll();
-    db.initSchema();
+    await dropAll();
+    await db.initSchema();
   }
 
   // 整批写入放在一个事务里：既保证要么全成功要么全回滚，
   // 也避免每条语句各自 fsync 造成初始化过慢。
-  db.transaction(() => seed());
+  await db.transaction(async () => await seed());
 
   const stats = {
-    用户: db.get('SELECT COUNT(*) AS c FROM user').c,
-    课程: db.get('SELECT COUNT(*) AS c FROM course').c,
-    上课时间: db.get('SELECT COUNT(*) AS c FROM class_time').c,
-    选课记录: db.get('SELECT COUNT(*) AS c FROM enrollment').c,
-    候补记录: db.get('SELECT COUNT(*) AS c FROM enrollment WHERE status = ?', 'waiting').c,
-    公告: db.get('SELECT COUNT(*) AS c FROM announcement').c
+    用户: (await db.get('SELECT COUNT(*) AS c FROM user')).c,
+    课程: (await db.get('SELECT COUNT(*) AS c FROM course')).c,
+    上课时间: (await db.get('SELECT COUNT(*) AS c FROM class_time')).c,
+    选课记录: (await db.get('SELECT COUNT(*) AS c FROM enrollment')).c,
+    候补记录: (await db.get('SELECT COUNT(*) AS c FROM enrollment WHERE status = ?', 'waiting')).c,
+    公告: (await db.get('SELECT COUNT(*) AS c FROM announcement')).c
   };
 
   console.log('演示数据写入完成：');
@@ -307,11 +307,13 @@ function main() {
   console.log(`  演示账号密码：${DEMO_PASSWORD}`);
 }
 
-try {
-  main();
-} catch (err) {
-  console.error('初始化失败：', err);
-  process.exitCode = 1;
-} finally {
-  db.close();
-}
+(async () => {
+  try {
+    await main();
+  } catch (err) {
+    console.error('初始化失败：', err);
+    process.exitCode = 1;
+  } finally {
+    await db.close();
+  }
+})();

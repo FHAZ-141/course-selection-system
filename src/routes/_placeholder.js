@@ -16,7 +16,7 @@ module.exports = function placeholderRouter({ title, roles, endpoints }) {
 
   router.use(requireLogin, requireRole(...roles));
 
-  router.all('/', (req, res) => {
+  router.all('/', async (req, res) => {
     res.render('placeholder', { title, endpoints });
   });
 

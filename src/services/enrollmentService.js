@@ -34,23 +34,23 @@ function toCourseId(value) {
 }
 
 /** 已选人数（算余量的唯一口径） */
-function countEnrolled(courseId) {
-  return db.get(
+async function countEnrolled(courseId) {
+  return await db.get(
     "SELECT COUNT(*) AS c FROM enrollment WHERE course_id = ? AND status = 'enrolled'",
     courseId
   ).c;
 }
 
 /** 候补人数 */
-function countWaiting(courseId) {
-  return db.get(
+async function countWaiting(courseId) {
+  return await db.get(
     "SELECT COUNT(*) AS c FROM enrollment WHERE course_id = ? AND status = 'waiting'",
     courseId
   ).c;
 }
 
-function getCourseRow(courseId) {
-  return db.get(
+async function getCourseRow(courseId) {
+  return await db.get(
     `SELECT c.*, u.name AS teacher_name
        FROM course c JOIN user u ON u.id = c.teacher_id
       WHERE c.id = ?`,
@@ -59,8 +59,8 @@ function getCourseRow(courseId) {
 }
 
 /** 某学生在某课候补队列中的位次（1 表示队首） */
-function waitlistPosition(courseId, studentId) {
-  const me = db.get(
+async function waitlistPosition(courseId, studentId) {
+  const me = await db.get(
     `SELECT id, waitlist_joined_at FROM enrollment
       WHERE course_id = ? AND student_id = ? AND status = 'waiting'`,
     courseId,
@@ -68,7 +68,7 @@ function waitlistPosition(courseId, studentId) {
   );
   if (!me) return 0;
 
-  const ahead = db.get(
+  const ahead = await db.get(
     `SELECT COUNT(*) AS c FROM enrollment
       WHERE course_id = ? AND status = 'waiting'
         AND (waitlist_joined_at < ? OR (waitlist_joined_at = ? AND id < ?))`,
@@ -85,9 +85,9 @@ function waitlistPosition(courseId, studentId) {
  * 复用手上已有的一行（含此前退课留下的 dropped 行），
  * 这样提交 UNIQUE(student_id, course_id) 永远不会冲突。
  */
-function upsertEnrollment(existing, studentId, courseId, status, waitlistJoinedAt, now) {
+async function upsertEnrollment(existing, studentId, courseId, status, waitlistJoinedAt, now) {
   if (existing) {
-    db.run(
+    await db.run(
       'UPDATE enrollment SET status = ?, waitlist_joined_at = ?, updated_at = ? WHERE id = ?',
       status,
       waitlistJoinedAt,
@@ -96,7 +96,7 @@ function upsertEnrollment(existing, studentId, courseId, status, waitlistJoinedA
     );
     return existing.id;
   }
-  return db.run(
+  return await db.run(
     `INSERT INTO enrollment (student_id, course_id, status, waitlist_joined_at, created_at, updated_at)
      VALUES (?, ?, ?, ?, ?, ?)`,
     studentId,
@@ -115,10 +115,10 @@ function upsertEnrollment(existing, studentId, courseId, status, waitlistJoinedA
  * - 冲突者被跳过但**保留在队列中**，等他调整课表后下次仍有机会
  * - 全程不判断选课窗口（R3：补位不受窗口开关影响）
  */
-function promoteNext(courseId, course, now) {
-  if (countEnrolled(courseId) >= Number(course.capacity)) return null;
+async function promoteNext(courseId, course, now) {
+  if (await countEnrolled(courseId) >= Number(course.capacity)) return null;
 
-  const queue = db.all(
+  const queue = await db.all(
     `SELECT id, student_id FROM enrollment
       WHERE course_id = ? AND status = 'waiting'
       ORDER BY waitlist_joined_at, id`,
@@ -126,16 +126,16 @@ function promoteNext(courseId, course, now) {
   );
 
   for (const item of queue) {
-    const conflicts = conflictService.findStudentConflicts(item.student_id, courseId);
+    const conflicts = await conflictService.findStudentConflicts(item.student_id, courseId);
     if (conflicts.length > 0) continue; // 跳过并顺延
 
-    db.run(
+    await db.run(
       "UPDATE enrollment SET status = 'enrolled', waitlist_joined_at = NULL, updated_at = ? WHERE id = ?",
       now,
       item.id
     );
 
-    const student = db.get('SELECT name, username FROM user WHERE id = ?', item.student_id);
+    const student = await db.get('SELECT name, username FROM user WHERE id = ?', item.student_id);
     return { studentId: item.student_id, name: student.name, username: student.username };
   }
   return null;
@@ -146,16 +146,16 @@ function promoteNext(courseId, course, now) {
  *
  * 校验顺序（R6）：窗口 → 课程状态 → 是否已选 → 时间冲突 → 余量并占用名额
  */
-function enroll(studentId, courseId) {
+async function enroll(studentId, courseId) {
   const id = toCourseId(courseId);
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
-  return db.transaction(() => {
-    const course = getCourseRow(id);
+  return await db.transaction(async () => {
+    const course = await getCourseRow(id);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
-    const windowState = windowService.getWindowState(
-      windowService.getSemesterById(course.semester_id)
+    const windowState = await windowService.getWindowState(
+      await windowService.getSemesterById(course.semester_id)
     );
     if (!windowState.open) {
       return fail('WINDOW_CLOSED', `${windowState.label}，当前不可选课`);
@@ -165,7 +165,7 @@ function enroll(studentId, courseId) {
       return fail('COURSE_CLOSED', '该课程已停开，不可选课');
     }
 
-    const existing = db.get(
+    const existing = await db.get(
       'SELECT * FROM enrollment WHERE student_id = ? AND course_id = ?',
       studentId,
       id
@@ -178,7 +178,7 @@ function enroll(studentId, courseId) {
     }
 
     // 进候补也要校验冲突（已拍板决策）
-    const conflicts = conflictService.findStudentConflicts(studentId, id);
+    const conflicts = await conflictService.findStudentConflicts(studentId, id);
     if (conflicts.length > 0) {
       const names = conflicts.map((c) => `${c.name}（${c.code}）`).join('、');
       return fail('CONFLICT', `与已选课程时间冲突：${names}`, { conflicts });
@@ -186,18 +186,18 @@ function enroll(studentId, courseId) {
 
     const now = nowIso();
 
-    if (countEnrolled(id) < Number(course.capacity)) {
-      upsertEnrollment(existing, studentId, id, 'enrolled', null, now);
+    if (await countEnrolled(id) < Number(course.capacity)) {
+      await upsertEnrollment(existing, studentId, id, 'enrolled', null, now);
       return ok('ENROLLED', `选课成功：${course.name}`, { status: 'enrolled' });
     }
 
     // 名额已满 → 转入候补（R2：候补队列上限 = 课程容量）
-    if (countWaiting(id) >= Number(course.capacity)) {
+    if (await countWaiting(id) >= Number(course.capacity)) {
       return fail('WAITLIST_FULL', `「${course.name}」名额已满，候补队列也已满`);
     }
 
-    upsertEnrollment(existing, studentId, id, 'waiting', now, now);
-    const position = waitlistPosition(id, studentId);
+    await upsertEnrollment(existing, studentId, id, 'waiting', now, now);
+    const position = await waitlistPosition(id, studentId);
     return ok('WAITLISTED', `「${course.name}」名额已满，已加入候补队列（第 ${position} 位）`, {
       status: 'waiting',
       position
@@ -210,15 +210,15 @@ function enroll(studentId, courseId) {
  *
  * 退课**不受选课窗口限制**；退课后触发候补自动补位。
  */
-function drop(studentId, courseId) {
+async function drop(studentId, courseId) {
   const id = toCourseId(courseId);
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
-  return db.transaction(() => {
-    const course = getCourseRow(id);
+  return await db.transaction(async () => {
+    const course = await getCourseRow(id);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
-    const existing = db.get(
+    const existing = await db.get(
       'SELECT * FROM enrollment WHERE student_id = ? AND course_id = ?',
       studentId,
       id
@@ -228,13 +228,13 @@ function drop(studentId, courseId) {
     }
 
     const now = nowIso();
-    db.run(
+    await db.run(
       "UPDATE enrollment SET status = 'dropped', waitlist_joined_at = NULL, updated_at = ? WHERE id = ?",
       now,
       existing.id
     );
 
-    const promoted = promoteNext(id, course, now);
+    const promoted = await promoteNext(id, course, now);
     const message = promoted
       ? `已退选「${course.name}」，候补队列中的 ${promoted.name} 已自动补位`
       : `已退选「${course.name}」`;
@@ -244,15 +244,15 @@ function drop(studentId, courseId) {
 }
 
 /** 主动退出候补队列 */
-function cancelWaitlist(studentId, courseId) {
+async function cancelWaitlist(studentId, courseId) {
   const id = toCourseId(courseId);
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
-  return db.transaction(() => {
-    const course = getCourseRow(id);
+  return await db.transaction(async () => {
+    const course = await getCourseRow(id);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
-    const existing = db.get(
+    const existing = await db.get(
       'SELECT * FROM enrollment WHERE student_id = ? AND course_id = ?',
       studentId,
       id
@@ -261,7 +261,7 @@ function cancelWaitlist(studentId, courseId) {
       return fail('NOT_WAITING', `你不在「${course.name}」的候补队列中`);
     }
 
-    db.run(
+    await db.run(
       "UPDATE enrollment SET status = 'dropped', waitlist_joined_at = NULL, updated_at = ? WHERE id = ?",
       nowIso(),
       existing.id
@@ -271,8 +271,8 @@ function cancelWaitlist(studentId, courseId) {
 }
 
 /** 我的选课结果（§2.1-6） */
-function listMyEnrollments(studentId) {
-  const rows = db.all(
+async function listMyEnrollments(studentId) {
+  const rows = await db.all(
     `SELECT e.id AS enrollment_id, e.status, e.waitlist_joined_at, e.updated_at,
             c.id AS course_id, c.code, c.name, c.credits, c.capacity, c.location,
             c.department, c.status AS course_status, u.name AS teacher_name,
@@ -288,7 +288,7 @@ function listMyEnrollments(studentId) {
     studentId
   );
 
-  const timeMap = classTimeService.loadByCourseIds(rows.map((r) => r.course_id));
+  const timeMap = await classTimeService.loadByCourseIds(rows.map((r) => r.course_id));
   const decorated = rows.map((r) => ({
     ...r,
     credits: Number(r.credits),
@@ -299,9 +299,11 @@ function listMyEnrollments(studentId) {
   }));
 
   const enrolled = decorated.filter((r) => r.status === 'enrolled');
-  const waiting = decorated
-    .filter((r) => r.status === 'waiting')
-    .map((r) => ({ ...r, position: waitlistPosition(r.course_id, studentId) }));
+  // 候补需要逐个查位次（异步查询不能用同步 map）
+  const waiting = [];
+  for (const r of decorated.filter((row) => row.status === 'waiting')) {
+    waiting.push({ ...r, position: await waitlistPosition(r.course_id, studentId) });
+  }
 
   return {
     enrolled,

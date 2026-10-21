@@ -28,8 +28,8 @@ function flashAndBack(req, res, result, fallback) {
 }
 
 /** 我的选课结果（§2.1-6） */
-router.get('/my', (req, res) => {
-  const data = enrollmentService.listMyEnrollments(req.user.id);
+router.get('/my', async (req, res) => {
+  const data = await enrollmentService.listMyEnrollments(req.user.id);
   res.render('my_enrollments', {
     title: '我的选课',
     enrolled: data.enrolled,
@@ -40,20 +40,20 @@ router.get('/my', (req, res) => {
 });
 
 /** 选课（满员自动转候补） */
-router.post('/', (req, res) => {
-  const result = enrollmentService.enroll(req.user.id, req.body.courseId);
+router.post('/', async (req, res) => {
+  const result = await enrollmentService.enroll(req.user.id, req.body.courseId);
   flashAndBack(req, res, result, '/courses');
 });
 
 /** 退课（触发候补自动补位） */
-router.post('/:courseId/drop', (req, res) => {
-  const result = enrollmentService.drop(req.user.id, req.params.courseId);
+router.post('/:courseId/drop', async (req, res) => {
+  const result = await enrollmentService.drop(req.user.id, req.params.courseId);
   flashAndBack(req, res, result, '/enrollments/my');
 });
 
 /** 主动退出候补队列 */
-router.post('/:courseId/waitlist/cancel', (req, res) => {
-  const result = enrollmentService.cancelWaitlist(req.user.id, req.params.courseId);
+router.post('/:courseId/waitlist/cancel', async (req, res) => {
+  const result = await enrollmentService.cancelWaitlist(req.user.id, req.params.courseId);
   flashAndBack(req, res, result, '/enrollments/my');
 });
 

@@ -99,15 +99,20 @@ function all(sql, ...params) {
 }
 
 /**
- * 在事务中执行同步函数。
+ * 在事务中执行函数（**异步**，与 pg 驱动保持一致）。
+ *
+ * ⚠️ 必须 await fn()：
+ * 若写成 `const result = fn(); d.exec('COMMIT')`，回调里的 await 还没跑完就提交了，
+ * 事务等于没生效（P1 迁移时最容易踩的坑）。
+ *
  * 默认使用 BEGIN IMMEDIATE：写事务一开始就取写锁，避免并发选课时的竞态
  * （对应需求 E2：并发控制 + 余量不超卖）。
  */
-function transaction(fn, mode = 'IMMEDIATE') {
+async function transaction(fn, mode = 'IMMEDIATE') {
   const d = getDb();
   d.exec(`BEGIN ${mode}`);
   try {
-    const result = fn();
+    const result = await fn();
     d.exec('COMMIT');
     return result;
   } catch (err) {

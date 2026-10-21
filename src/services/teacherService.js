@@ -13,19 +13,19 @@ const classTimeService = require('./classTimeService');
 const conflictService = require('./conflictService');
 
 /** 教师概览数字 */
-function overview(teacherId) {
-  const courses = db.get(
+async function overview(teacherId) {
+  const courses = await db.get(
     "SELECT COUNT(*) AS total, SUM(CASE WHEN status = 'open' THEN 1 ELSE 0 END) AS open FROM course WHERE teacher_id = ?",
     teacherId
   );
 
-  const enrolled = db.get(
+  const enrolled = await db.get(
     `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
       WHERE c.teacher_id = ? AND e.status = 'enrolled'`,
     teacherId
   ).c;
 
-  const waiting = db.get(
+  const waiting = await db.get(
     `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
       WHERE c.teacher_id = ? AND e.status = 'waiting'`,
     teacherId
@@ -36,13 +36,13 @@ function overview(teacherId) {
     openCount: Number(courses.open) || 0,
     enrolledCount: Number(enrolled) || 0,
     waitingCount: Number(waiting) || 0,
-    conflictCount: conflictService.findTeacherConflicts(teacherId).length
+    conflictCount: (await conflictService.findTeacherConflicts(teacherId)).length
   };
 }
 
 /** 我所授课程列表（含容量与选课人数） */
-function listMyCourses(teacherId) {
-  const rows = db.all(
+async function listMyCourses(teacherId) {
+  const rows = await db.all(
     `SELECT c.id, c.code, c.name, c.credits, c.capacity, c.status,
             c.department, c.location,
             s.name AS semester_name,
@@ -57,7 +57,7 @@ function listMyCourses(teacherId) {
     teacherId
   );
 
-  const timeMap = classTimeService.loadByCourseIds(rows.map((r) => r.id));
+  const timeMap = await classTimeService.loadByCourseIds(rows.map((r) => r.id));
   return rows.map((r) => ({
     ...r,
     credits: Number(r.credits),
@@ -73,12 +73,12 @@ function listMyCourses(teacherId) {
  * 取某门课的选课名单
  * @returns {object|null} 课程不在该教师名下时返回 null（调用方转 403/404）
  */
-function getCourseStudents(teacherId, courseId) {
+async function getCourseStudents(teacherId, courseId) {
   const id = Number(courseId);
   if (!Number.isInteger(id) || id <= 0) return null;
 
   // 关键：把 teacher_id 放进 WHERE，而不是查出来再比对
-  const course = db.get(
+  const course = await db.get(
     `SELECT c.*, s.name AS semester_name
        FROM course c
        JOIN semester s ON s.id = c.semester_id
@@ -88,7 +88,7 @@ function getCourseStudents(teacherId, courseId) {
   );
   if (!course) return null;
 
-  const students = db.all(
+  const students = await db.all(
     `SELECT u.username, u.name, u.grade, u.department,
             e.status, e.created_at, e.waitlist_joined_at, e.updated_at
        FROM enrollment e
@@ -104,7 +104,7 @@ function getCourseStudents(teacherId, courseId) {
       ...course,
       credits: Number(course.credits),
       capacity: Number(course.capacity),
-      class_times: classTimeService.getByCourseId(id)
+      class_times: await classTimeService.getByCourseId(id)
     },
     enrolled: students.filter((s) => s.status === 'enrolled'),
     waiting: students.filter((s) => s.status === 'waiting')
@@ -112,8 +112,8 @@ function getCourseStudents(teacherId, courseId) {
 }
 
 /** 我所授课程之间的时间冲突 */
-function findMyConflicts(teacherId) {
-  return conflictService.findTeacherConflicts(teacherId);
+async function findMyConflicts(teacherId) {
+  return await conflictService.findTeacherConflicts(teacherId);
 }
 
 module.exports = {

@@ -27,26 +27,26 @@ function nowIso() {
  * 公告列表：置顶优先，其余按发布时间倒序
  * @param {{limit?:number}} options
  */
-function list(options = {}) {
+async function list(options = {}) {
   const limit = Number(options.limit) > 0 ? Math.min(Number(options.limit), 200) : 50;
-  return db.all(
+  return await db.all(
     `${LIST_SQL} ORDER BY a.pinned DESC, a.created_at DESC, a.id DESC LIMIT ?`,
     limit
   );
 }
 
 /** 取单条公告，不存在返回 null */
-function get(id) {
+async function get(id) {
   const n = Number(id);
   if (!Number.isInteger(n) || n <= 0) return null;
-  return db.get(`${LIST_SQL} WHERE a.id = ?`, n) || null;
+  return await db.get(`${LIST_SQL} WHERE a.id = ?`, n) || null;
 }
 
 /**
  * 发布公告
  * @returns {{ok:boolean, code:string, message:string, data?:object}}
  */
-function create({ title, content, pinned, authorId }) {
+async function create({ title, content, pinned, authorId }) {
   const t = String(title || '').trim();
   const c = String(content || '').trim();
 
@@ -59,7 +59,7 @@ function create({ title, content, pinned, authorId }) {
     return { ok: false, code: 'CONTENT_TOO_LONG', message: `内容不能超过 ${CONTENT_MAX} 字` };
   }
 
-  const id = db.run(
+  const id = await db.run(
     'INSERT INTO announcement (title, content, author_id, pinned, created_at) VALUES (?, ?, ?, ?, ?)',
     t,
     c,
@@ -72,29 +72,29 @@ function create({ title, content, pinned, authorId }) {
 }
 
 /** 删除公告 */
-function remove(id) {
+async function remove(id) {
   const n = Number(id);
   const row = Number.isInteger(n) && n > 0
-    ? db.get('SELECT id, title FROM announcement WHERE id = ?', n)
+    ? await db.get('SELECT id, title FROM announcement WHERE id = ?', n)
     : null;
 
   if (!row) return { ok: false, code: 'NOT_FOUND', message: '公告不存在或已被删除' };
 
-  db.run('DELETE FROM announcement WHERE id = ?', n);
+  await db.run('DELETE FROM announcement WHERE id = ?', n);
   return { ok: true, code: 'DELETED', message: `已删除公告「${row.title}」` };
 }
 
 /** 切换置顶状态 */
-function togglePinned(id) {
+async function togglePinned(id) {
   const n = Number(id);
   const row = Number.isInteger(n) && n > 0
-    ? db.get('SELECT id, title, pinned FROM announcement WHERE id = ?', n)
+    ? await db.get('SELECT id, title, pinned FROM announcement WHERE id = ?', n)
     : null;
 
   if (!row) return { ok: false, code: 'NOT_FOUND', message: '公告不存在或已被删除' };
 
   const next = row.pinned ? 0 : 1;
-  db.run('UPDATE announcement SET pinned = ? WHERE id = ?', next, n);
+  await db.run('UPDATE announcement SET pinned = ? WHERE id = ?', next, n);
   return {
     ok: true,
     code: 'PINNED_UPDATED',

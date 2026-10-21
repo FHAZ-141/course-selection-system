@@ -110,15 +110,15 @@ async function main() {
   });
 
   // 2) 造一门用于冲击的小容量课程（容量 3，且不排课 → 不会与他人冲突）
-  const semester = db.get('SELECT * FROM semester WHERE is_current = 1');
-  const teacher = db.get("SELECT id FROM user WHERE role = 'teacher' ORDER BY id LIMIT 1");
-  const courseId = db.run(
+  const semester = await db.get('SELECT * FROM semester WHERE is_current = 1');
+  const teacher = await db.get("SELECT id FROM user WHERE role = 'teacher' ORDER BY id LIMIT 1");
+  const courseId = await db.run(
     `INSERT INTO course (code, name, teacher_id, semester_id, department, credits, capacity, location, description, status, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     'TEST01', '并发测试课程', teacher.id, semester.id, '计算机学院', 1.0, 3, '测试教室', '并发验证用', 'open', nowIso()
   ).lastInsertRowid;
 
-  const students = db.all("SELECT id, username, name FROM user WHERE role = 'student' ORDER BY id LIMIT 10");
+  const students = await db.all("SELECT id, username, name FROM user WHERE role = 'student' ORDER BY id LIMIT 10");
   const CAPACITY = 3;
 
   // 3) 启动应用内服务器
@@ -144,8 +144,8 @@ async function main() {
     const rejected = burst.filter((r) => r.flash.includes('候补队列也已满')).length;
 
     const afterBurst = {
-      enrolled: enrollmentService.countEnrolled(courseId),
-      waiting: enrollmentService.countWaiting(courseId)
+      enrolled: await enrollmentService.countEnrolled(courseId),
+      waiting: await enrollmentService.countWaiting(courseId)
     };
 
     check('实际选中人数 = 容量（不超卖）', afterBurst.enrolled, CAPACITY);
@@ -155,13 +155,13 @@ async function main() {
     check('候补队列满而被拒绝的请求数', rejected, students.length - CAPACITY * 2);
 
     console.log('\n【场景二】退课触发候补自动补位（§2.1-3 / B4 / R1）');
-    const enrolledRows = db.all(
+    const enrolledRows = await db.all(
       "SELECT id, student_id FROM enrollment WHERE course_id = ? AND status = 'enrolled' ORDER BY id",
       courseId
     );
     const dropper = students.find((s) => s.id === enrolledRows[0].student_id);
     const dropperIndex = students.findIndex((s) => s.id === dropper.id);
-    const headOfQueueBefore = db.get(
+    const headOfQueueBefore = await db.get(
       "SELECT student_id FROM enrollment WHERE course_id = ? AND status = 'waiting' ORDER BY waitlist_joined_at, id LIMIT 1",
       courseId
     );
@@ -170,10 +170,10 @@ async function main() {
       back: '/enrollments/my'
     });
     const afterDrop = {
-      enrolled: enrollmentService.countEnrolled(courseId),
-      waiting: enrollmentService.countWaiting(courseId)
+      enrolled: await enrollmentService.countEnrolled(courseId),
+      waiting: await enrollmentService.countWaiting(courseId)
     };
-    const promotedRow = db.get(
+    const promotedRow = await db.get(
       "SELECT student_id FROM enrollment WHERE course_id = ? AND status = 'enrolled' AND student_id = ?",
       courseId,
       headOfQueueBefore.student_id
@@ -185,20 +185,25 @@ async function main() {
     assert('提示中包含补位说明', dropResult.flash.includes('自动补位'), dropResult.flash);
 
     console.log('\n【场景三】选课窗口关闭后的行为（B2 / B3 / R3）');
-    db.run(
+    await db.run(
       "UPDATE semester SET select_close_at = ? WHERE id = ?",
       '2000-01-01 00:00:00',
       semester.id
     );
 
-    const outsiderIndex = students.findIndex(
-      (s) =>
-        !db.get(
-          'SELECT 1 AS x FROM enrollment WHERE course_id = ? AND student_id = ?',
-          courseId,
-          s.id
-        )
-    );
+    // 找一个没有选中该课程的学生（异步查询不能用同步 findIndex）
+    let outsiderIndex = -1;
+    for (let i = 0; i < students.length; i += 1) {
+      const hit = await db.get(
+        'SELECT 1 AS x FROM enrollment WHERE course_id = ? AND student_id = ?',
+        courseId,
+        students[i].id
+      );
+      if (!hit) {
+        outsiderIndex = i;
+        break;
+      }
+    }
     const outsider = students[outsiderIndex];
     const closedEnroll = await submit(base, '/enrollments', cookies[outsiderIndex], {
       courseId,
@@ -206,24 +211,28 @@ async function main() {
     });
     assert('窗口关闭后选课被拒绝', closedEnroll.flash.includes('截止'), closedEnroll.flash);
 
-    const enrolledBeforeSecondDrop = enrollmentService.countEnrolled(courseId);
-    const secondDropper = students.find(
-      (s) =>
-        s.id !== outsider.id &&
-        db.get(
-          "SELECT 1 AS x FROM enrollment WHERE course_id = ? AND student_id = ? AND status = 'enrolled'",
-          courseId,
-          s.id
-        )
-    );
+    const enrolledBeforeSecondDrop = await enrollmentService.countEnrolled(courseId);
+    let secondDropper = null;
+    for (const s of students) {
+      if (s.id === outsider.id) continue;
+      const hit = await db.get(
+        "SELECT 1 AS x FROM enrollment WHERE course_id = ? AND student_id = ? AND status = 'enrolled'",
+        courseId,
+        s.id
+      );
+      if (hit) {
+        secondDropper = s;
+        break;
+      }
+    }
     const secondDrop = await submit(
       base,
       `/enrollments/${courseId}/drop`,
       cookies[students.findIndex((s) => s.id === secondDropper.id)],
       { back: '/enrollments/my' }
     );
-    const afterSecondDrop = enrollmentService.countEnrolled(courseId);
-    const waitingAfterSecondDrop = enrollmentService.countWaiting(courseId);
+    const afterSecondDrop = await enrollmentService.countEnrolled(courseId);
+    const waitingAfterSecondDrop = await enrollmentService.countWaiting(courseId);
 
     assert('窗口关闭后退课仍然成功（B3）', secondDrop.flash.includes('已退选'), secondDrop.flash);
     check('窗口关闭后退课释放的名额仍被候补补位（R3）', afterSecondDrop, enrolledBeforeSecondDrop);

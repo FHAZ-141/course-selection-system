@@ -36,12 +36,12 @@ function toArray(value) {
 
 // ---------------------------------------------------------------- 学期
 
-function getCurrentSemester() {
-  return db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
+async function getCurrentSemester() {
+  return await db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
 }
 
-function getSemesterById(id) {
-  return db.get('SELECT * FROM semester WHERE id = ?', id);
+async function getSemesterById(id) {
+  return await db.get('SELECT * FROM semester WHERE id = ?', id);
 }
 
 /** 把 datetime-local 输入（2026-10-16T10:00）规整成数据库格式 */
@@ -62,8 +62,8 @@ function toDateTimeLocal(value) {
  * 保存选课窗口
  * @returns {{ok:boolean, code:string, message:string}}
  */
-function saveWindow({ semesterId, openAt, closeAt }) {
-  const semester = getSemesterById(semesterId);
+async function saveWindow({ semesterId, openAt, closeAt }) {
+  const semester = await getSemesterById(semesterId);
   if (!semester) return fail('SEMESTER_NOT_FOUND', '学期不存在');
 
   const open = normalizeDateTime(openAt);
@@ -75,7 +75,7 @@ function saveWindow({ semesterId, openAt, closeAt }) {
     return fail('INVALID_RANGE', '截止时间必须晚于开放时间');
   }
 
-  db.run(
+  await db.run(
     'UPDATE semester SET select_open_at = ?, select_close_at = ? WHERE id = ?',
     open,
     close,
@@ -88,8 +88,8 @@ function saveWindow({ semesterId, openAt, closeAt }) {
 
 // ---------------------------------------------------------------- 教师与院系
 
-function listTeachers() {
-  return db.all(
+async function listTeachers() {
+  return await db.all(
     "SELECT id, username, name, department FROM user WHERE role = 'teacher' ORDER BY name"
   );
 }
@@ -117,8 +117,8 @@ const COURSE_SELECT = `
 `;
 
 /** 管理视角的课程列表（含停开课程） */
-function listCourses(semesterId) {
-  const rows = db.all(`${COURSE_SELECT} WHERE c.semester_id = ? ORDER BY c.code`, semesterId);
+async function listCourses(semesterId) {
+  const rows = await db.all(`${COURSE_SELECT} WHERE c.semester_id = ? ORDER BY c.code`, semesterId);
   return rows.map((r) => ({
     ...r,
     credits: Number(r.credits),
@@ -130,18 +130,18 @@ function listCourses(semesterId) {
 }
 
 /** 某门课 + 它的全部上课时间（编辑页回填用） */
-function getCourseForEdit(courseId) {
+async function getCourseForEdit(courseId) {
   const id = Number(courseId);
   if (!Number.isInteger(id) || id <= 0) return null;
 
-  const course = db.get(`${COURSE_SELECT} WHERE c.id = ?`, id);
+  const course = await db.get(`${COURSE_SELECT} WHERE c.id = ?`, id);
   if (!course) return null;
 
   return {
     ...course,
     credits: Number(course.credits),
     capacity: Number(course.capacity),
-    class_times: db.all(
+    class_times: await db.all(
       'SELECT * FROM class_time WHERE course_id = ? ORDER BY day_of_week, start_period',
       id
     )
@@ -152,7 +152,7 @@ function getCourseForEdit(courseId) {
  * 校验课程字段
  * @returns {{ok:boolean, message?:string}}
  */
-function validateCourse(input) {
+async function validateCourse(input) {
   const code = String(input.code || '').trim();
   const name = String(input.name || '').trim();
   const credits = Number(input.credits);
@@ -172,7 +172,7 @@ function validateCourse(input) {
   }
   if (!input.teacherId) return fail('TEACHER_REQUIRED', '请选择授课教师');
 
-  const teacher = db.get("SELECT id FROM user WHERE id = ? AND role = 'teacher'", input.teacherId);
+  const teacher = await db.get("SELECT id FROM user WHERE id = ? AND role = 'teacher'", input.teacherId);
   if (!teacher) return fail('TEACHER_INVALID', '所选教师不存在');
 
   const times = input.classTimes || [];
@@ -206,16 +206,16 @@ function validateCourse(input) {
  * 新增或更新课程（含上课时间的整体替换）
  * @param {object} input 已由路由层整理好的结构化数据
  */
-function saveCourse(input) {
-  const invalid = validateCourse(input);
+async function saveCourse(input) {
+  const invalid = await validateCourse(input);
   if (!invalid.ok) return invalid;
 
   const courseId = input.id ? Number(input.id) : null;
-  const semester = input.semesterId ? getSemesterById(input.semesterId) : getCurrentSemester();
+  const semester = input.semesterId ? await getSemesterById(input.semesterId) : await getCurrentSemester();
   if (!semester) return fail('SEMESTER_NOT_FOUND', '请先配置学期');
 
   const code = String(input.code).trim().toUpperCase();
-  const duplicated = db.get(
+  const duplicated = await db.get(
     'SELECT id, code FROM course WHERE code = ? AND (? IS NULL OR id <> ?)',
     code,
     courseId,
@@ -226,15 +226,15 @@ function saveCourse(input) {
   const times = input.classTimes || [];
   const now = nowIso();
 
-  const savedId = db.transaction(() => {
+  const savedId = await db.transaction(async () => {
     let id = courseId;
 
     if (id) {
-      const existing = db.get('SELECT id FROM course WHERE id = ?', id);
+      const existing = await db.get('SELECT id FROM course WHERE id = ?', id);
       if (!existing) {
         throw Object.assign(new Error('课程不存在'), { business: true });
       }
-      db.run(
+      await db.run(
         `UPDATE course
             SET code = ?, name = ?, teacher_id = ?, department = ?, credits = ?,
                 capacity = ?, location = ?, description = ?, status = ?
@@ -251,9 +251,9 @@ function saveCourse(input) {
         id
       );
       // 排课整体替换
-      db.run('DELETE FROM class_time WHERE course_id = ?', id);
+      await db.run('DELETE FROM class_time WHERE course_id = ?', id);
     } else {
-      id = db.run(
+      id = await db.run(
         `INSERT INTO course (code, name, teacher_id, semester_id, department, credits,
                              capacity, location, description, status, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -272,7 +272,7 @@ function saveCourse(input) {
     }
 
     for (const t of times) {
-      db.run(
+      await db.run(
         `INSERT INTO class_time (course_id, day_of_week, start_period, end_period,
                                  week_type, start_week, end_week)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -295,14 +295,14 @@ function saveCourse(input) {
 }
 
 /** 删除课程；有选课记录时拒绝 */
-function deleteCourse(courseId) {
+async function deleteCourse(courseId) {
   const id = Number(courseId);
   if (!Number.isInteger(id) || id <= 0) return fail('NOT_FOUND', '课程不存在');
 
-  const course = db.get('SELECT id, code, name FROM course WHERE id = ?', id);
+  const course = await db.get('SELECT id, code, name FROM course WHERE id = ?', id);
   if (!course) return fail('NOT_FOUND', '课程不存在');
 
-  const enrolled = db.get(
+  const enrolled = await db.get(
     "SELECT COUNT(*) AS c FROM enrollment WHERE course_id = ? AND status IN ('enrolled','waiting')",
     id
   ).c;
@@ -313,9 +313,9 @@ function deleteCourse(courseId) {
     );
   }
 
-  db.run('DELETE FROM class_time WHERE course_id = ?', id);
-  db.run('DELETE FROM enrollment WHERE course_id = ?', id);
-  db.run('DELETE FROM course WHERE id = ?', id);
+  await db.run('DELETE FROM class_time WHERE course_id = ?', id);
+  await db.run('DELETE FROM enrollment WHERE course_id = ?', id);
+  await db.run('DELETE FROM course WHERE id = ?', id);
 
   return ok('DELETED', `课程「${course.name}」已删除`);
 }
@@ -348,26 +348,26 @@ function enrollmentStats(semesterId) {
 }
 
 /** 后台概览数字 */
-function overview(semesterId) {
+async function overview(semesterId) {
   return {
-    courseCount: db.get('SELECT COUNT(*) AS c FROM course WHERE semester_id = ?', semesterId).c,
-    openCount: db.get(
+    courseCount: (await db.get('SELECT COUNT(*) AS c FROM course WHERE semester_id = ?', semesterId)).c,
+    openCount: await db.get(
       "SELECT COUNT(*) AS c FROM course WHERE semester_id = ? AND status = 'open'",
       semesterId
     ).c,
-    studentCount: db.get("SELECT COUNT(*) AS c FROM user WHERE role = 'student'").c,
-    teacherCount: db.get("SELECT COUNT(*) AS c FROM user WHERE role = 'teacher'").c,
-    enrolledCount: db.get(
+    studentCount: (await db.get("SELECT COUNT(*) AS c FROM user WHERE role = 'student'")).c,
+    teacherCount: (await db.get("SELECT COUNT(*) AS c FROM user WHERE role = 'teacher'")).c,
+    enrolledCount: await db.get(
       `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
         WHERE c.semester_id = ? AND e.status = 'enrolled'`,
       semesterId
     ).c,
-    waitingCount: db.get(
+    waitingCount: await db.get(
       `SELECT COUNT(*) AS c FROM enrollment e JOIN course c ON c.id = e.course_id
         WHERE c.semester_id = ? AND e.status = 'waiting'`,
       semesterId
     ).c,
-    announcementCount: db.get('SELECT COUNT(*) AS c FROM announcement').c
+    announcementCount: (await db.get('SELECT COUNT(*) AS c FROM announcement')).c
   };
 }
 

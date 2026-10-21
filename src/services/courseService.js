@@ -16,20 +16,20 @@
 const db = require('../db');
 const classTimeService = require('./classTimeService');
 
-function getCurrentSemester() {
-  return db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
+async function getCurrentSemester() {
+  return await db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
 }
 
 /**
  * 批量取某学生对这些课的选课状态
  * @returns {Map<number, string>} course_id -> status
  */
-function loadMyStatus(studentId, courseIds) {
+async function loadMyStatus(studentId, courseIds) {
   const map = new Map();
   if (!studentId || courseIds.length === 0) return map;
 
   const placeholders = courseIds.map(() => '?').join(', ');
-  const rows = db.all(
+  const rows = await db.all(
     `SELECT course_id, status FROM enrollment
       WHERE student_id = ? AND course_id IN (${placeholders})`,
     studentId,
@@ -94,8 +94,8 @@ function decorate(rows, classTimeMap, myStatusMap) {
  * @param {number} [options.dayOfWeek]   上课星期（1-7）
  * @param {number} [options.studentId]   当前学生 id，用于标记"我的选课状态"
  */
-function listCourses(options = {}) {
-  const semester = getCurrentSemester();
+async function listCourses(options = {}) {
+  const semester = await getCurrentSemester();
   if (!semester) {
     return { semester: null, courses: [], filters: { departments: [], teachers: [] } };
   }
@@ -123,7 +123,7 @@ function listCourses(options = {}) {
     params.push(Number(options.dayOfWeek));
   }
 
-  const rows = db.all(
+  const rows = await db.all(
     `${BASE_SELECT} WHERE ${where.join(' AND ')} ORDER BY c.code`,
     ...params
   );
@@ -131,8 +131,8 @@ function listCourses(options = {}) {
   const ids = rows.map((r) => r.id);
   const courses = decorate(
     rows,
-    classTimeService.loadByCourseIds(ids),
-    loadMyStatus(options.studentId, ids)
+    await classTimeService.loadByCourseIds(ids),
+    await loadMyStatus(options.studentId, ids)
   );
 
   return {
@@ -142,7 +142,7 @@ function listCourses(options = {}) {
       departments: db
         .all('SELECT DISTINCT department AS d FROM course WHERE semester_id = ? AND department IS NOT NULL ORDER BY d', semester.id)
         .map((r) => r.d),
-      teachers: db.all(
+      teachers: await db.all(
         `SELECT DISTINCT u.id, u.name
            FROM course c JOIN user u ON u.id = c.teacher_id
           WHERE c.semester_id = ?
@@ -157,17 +157,17 @@ function listCourses(options = {}) {
  * 课程详情
  * @returns {object|null} 课程对象，或 null（课程不存在）
  */
-function getCourseDetail(courseId, studentId) {
+async function getCourseDetail(courseId, studentId) {
   const id = Number(courseId);
   if (!Number.isInteger(id) || id <= 0) return null;
 
-  const row = db.get(`${BASE_SELECT} WHERE c.id = ?`, id);
+  const row = await db.get(`${BASE_SELECT} WHERE c.id = ?`, id);
   if (!row) return null;
 
   const [course] = decorate(
     [row],
-    classTimeService.loadByCourseIds([id]),
-    loadMyStatus(studentId, [id])
+    await classTimeService.loadByCourseIds([id]),
+    await loadMyStatus(studentId, [id])
   );
   return course;
 }

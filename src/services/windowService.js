@@ -9,12 +9,12 @@
 
 const db = require('../db');
 
-function getCurrentSemester() {
-  return db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
+async function getCurrentSemester() {
+  return await db.get('SELECT * FROM semester WHERE is_current = 1 ORDER BY id DESC LIMIT 1');
 }
 
-function getSemesterById(semesterId) {
-  return db.get('SELECT * FROM semester WHERE id = ?', semesterId);
+async function getSemesterById(semesterId) {
+  return await db.get('SELECT * FROM semester WHERE id = ?', semesterId);
 }
 
 /**
@@ -66,8 +66,8 @@ function getWindowState(semester) {
 }
 
 /** 当前学期的窗口状态 */
-function getCurrentWindowState() {
-  return getWindowState(getCurrentSemester());
+async function getCurrentWindowState() {
+  return getWindowState(await getCurrentSemester());
 }
 
 module.exports = {

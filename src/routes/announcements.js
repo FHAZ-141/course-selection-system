@@ -16,17 +16,17 @@ const router = express.Router();
 router.use(requireLogin);
 
 /** 公告列表 */
-router.get('/', (req, res) => {
+router.get('/', async (req, res) => {
   res.render('announcement_list', {
     title: '公告通知',
-    announcements: announcementService.list({ limit: 50 }),
+    announcements: await announcementService.list({ limit: 50 }),
     fmt: format
   });
 });
 
 /** 公告详情 */
-router.get('/:id', (req, res, next) => {
-  const announcement = announcementService.get(req.params.id);
+router.get('/:id', async (req, res, next) => {
+  const announcement = await announcementService.get(req.params.id);
   if (!announcement) {
     const err = new Error('公告不存在或已被删除');
     err.status = 404;

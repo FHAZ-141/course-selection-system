@@ -50,11 +50,11 @@ function timesConflict(a, b) {
  * 找出某学生若选 targetCourseId 会与哪些已选课程冲突
  * @returns {Array<{course_id:number, code:string, name:string, pairs:Array}>}
  */
-function findStudentConflicts(studentId, targetCourseId) {
-  const targetTimes = classTimeService.getByCourseId(targetCourseId);
+async function findStudentConflicts(studentId, targetCourseId) {
+  const targetTimes = await classTimeService.getByCourseId(targetCourseId);
   if (targetTimes.length === 0) return [];
 
-  const enrolledTimes = classTimeService.loadStudentEnrolledTimes(studentId);
+  const enrolledTimes = await classTimeService.loadStudentEnrolledTimes(studentId);
   if (enrolledTimes.length === 0) return [];
 
   const byCourse = new Map();
@@ -80,8 +80,8 @@ function findStudentConflicts(studentId, targetCourseId) {
  * 找出某教师所授课程之间的时间冲突（R7 教师端使用）
  * @returns {Array<{a:object, b:object, pairs:Array}>}
  */
-function findTeacherConflicts(teacherId) {
-  const times = classTimeService.loadTeacherTimes(teacherId);
+async function findTeacherConflicts(teacherId) {
+  const times = await classTimeService.loadTeacherTimes(teacherId);
 
   const byCourse = new Map();
   for (const item of times) {
