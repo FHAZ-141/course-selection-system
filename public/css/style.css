@@ -611,3 +611,41 @@ input:focus, select:focus, textarea:focus {
 }
 .conflict-title { font-size: 14px; }
 .conflict-vs { margin: 0 8px; color: var(--text-faint); font-size: 12.5px; }
+
+/* ============ 数据库连接状态徽标（顶部）============ */
+.db-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: nowrap;
+  user-select: none;
+  cursor: default;
+}
+.db-status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+  flex: 0 0 auto;
+}
+.db-status--ok { color: #1a7f37; background: #e9f7ee; border-color: #c7ebd3; }
+.db-status--ok .db-status-dot { animation: db-pulse 2.4s ease-in-out infinite; }
+.db-status--pending { color: #8a6d00; background: #fff8e1; border-color: #f1e3b3; }
+.db-status--local { color: #8a6d00; background: #fff8e1; border-color: #f1e3b3; }
+.db-status--down { color: #b42318; background: #fdecec; border-color: #f5c2c0; }
+.db-status--down .db-status-dot { animation: db-pulse 1.2s ease-in-out infinite; }
+
+@keyframes db-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@media (max-width: 560px) {
+  .db-status { padding: 3px 7px; }
+  .db-status-text { display: none; }
+}

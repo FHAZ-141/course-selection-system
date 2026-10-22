@@ -21,6 +21,11 @@
 ### 新增（实现）
 - `src/utils/flash.js`：统一的结果提示工具（setFlash / flashAndBack），12 处写路由接入
 
+### 新增（界面）
+- 顶部数据库连接质量徽标：绿色「云端库 · Nms」/ 红色「云端离线」/ 黄色「离线 SQLite」
+  - 后台每 15 秒探测一次 `SELECT 1` 并缓存，页面渲染不额外查库（`src/utils/dbStatus.js`）
+  - 前端每 10 秒请求 `/health` 刷新，标签页隐藏时暂停（`public/js/db-status.js`）
+
 ### 修复（代码与文档一致性核对）
 - 文档：课程保存路由修正为实际路径（`POST /admin/courses`、`POST /admin/courses/:id`）
 - 文档：`/health` 字段补全（`node` / `commit` / `db` / `dbOk` / `dbMs`）；F3 在线演示的 ✅ 状态与遗留项 TODO 对齐

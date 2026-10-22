@@ -6,6 +6,7 @@ const session = require('express-session');
 
 const config = require('./config');
 const db = require('./db');
+const dbStatus = require('./utils/dbStatus');
 const { attachUser } = require('./middleware/auth');
 
 const app = express();
@@ -20,6 +21,12 @@ app.use(express.json());
 app.use(express.static(path.join(config.rootDir, 'public')));
 app.use(session(config.session));
 app.use(attachUser);
+
+// 数据库连接状态（顶部徽标用），只读缓存，不在请求路径上查库
+app.use((req, res, next) => {
+  res.locals.dbStatus = dbStatus.getState();
+  next();
+});
 
 // 健康检查（并发压测脚本、部署健康探测、发布核对使用）
 //

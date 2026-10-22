@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %> · <%= appName %></title>
   <link rel="stylesheet" href="/css/style.css">
+  <script src="/js/db-status.js" defer></script>
 </head>
 <body>
 <header class="topbar">
@@ -31,6 +32,7 @@
       </nav>
 
       <div class="userbox">
+        <%- include('db-status') %>
         <span class="uname"><%= currentUser.name %></span>
         <span class="badge badge-<%= currentUser.role %>"><%= roles[currentUser.role] %></span>
         <form method="post" action="/logout">
@@ -39,6 +41,7 @@
       </div>
     <% } else { %>
       <div class="userbox">
+        <%- include('db-status') %>
         <a class="btn btn-primary btn-sm" href="/login">登录</a>
       </div>
     <% } %>

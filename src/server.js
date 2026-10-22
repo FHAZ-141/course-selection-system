@@ -7,6 +7,7 @@ require('./utils/loadEnv').loadEnv();
 const app = require('./app');
 const config = require('./config');
 const db = require('./db');
+const dbStatus = require('./utils/dbStatus');
 
 let server = null;
 
@@ -33,6 +34,9 @@ async function start() {
       console.warn('提示：演示数据写入失败，请手动执行  npm run init-db');
     }
   }
+
+  // 后台每 15 秒探测一次数据库，供页面顶部的连接质量徽标使用
+  dbStatus.start();
 
   server = app.listen(config.server.port, config.server.host, () => {
     const shown = config.server.host === '0.0.0.0' ? 'localhost' : config.server.host;

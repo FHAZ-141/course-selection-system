@@ -1,0 +1,13 @@
+<%
+  var s = (typeof dbStatus !== 'undefined' && dbStatus) ? dbStatus : { driver: 'unknown', ok: null, ms: null };
+  var kind = s.ok === null ? 'pending'
+    : (s.driver === 'pg' ? (s.ok ? 'ok' : 'down') : 'local');
+  var text = s.ok === null ? '检测中'
+    : (s.driver === 'pg'
+      ? (s.ok ? '云端库 · ' + s.ms + 'ms' : '云端离线')
+      : '离线 SQLite');
+  var title = s.ok === null ? '正在检测数据库连接…'
+    : (s.driver === 'pg'
+      ? (s.ok ? '已连接 Neon PostgreSQL，最近一次探测延迟 ' + s.ms + ' ms' : '云端数据库连接失败')
+      : '当前使用本地 SQLite，未连接云端数据库');
+%><span id="db-status" class="db-status db-status--<%= kind %>" data-driver="<%= s.driver %>" title="<%= title %>"><span class="db-status-dot"></span><span class="db-status-text"><%= text %></span></span>

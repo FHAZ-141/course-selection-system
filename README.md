@@ -75,6 +75,8 @@
 - `npm start`、`start.bat`、`node start.js` **都会自动加载 `.env`**，不需要额外加参数；
 - 进程里显式设置的环境变量优先，例如 `DB_DRIVER=sqlite npm start` 可强制离线；
 - `npm run init-db` / `reset-db` 只作用于离线 SQLite；云端库用 `init-db:pg` / `reset-db:pg`。
+- 页面右上角有**连接质量徽标**：绿色「云端库 · Nms」= 已连 Neon 并显示最近探测延迟；
+  红色「云端离线」= 连接失败；黄色「离线 SQLite」= 当前没连云端库。前端每 10 秒刷新一次。
 
 ### 启动步骤
 
