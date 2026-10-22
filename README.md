@@ -37,7 +37,7 @@
 | 层次 | 方案 | 备注 |
 | --- | --- | --- |
 | 后端 | Node.js + Express | 与本机 Node v22 环境匹配 |
-| 数据库 | SQLite（`node-sqlite3-wasm`） | 纯 JS / WASM 实现，**免原生编译** |
+| 数据库 | PostgreSQL 18（Neon）＋ SQLite 双驱动 | 生产用 Neon 托管库；SQLite 用于离线开发与回退。两者均**免原生编译** |
 | 前端 | 服务端渲染页面 + 原生 HTML / CSS / JS | 三个角色各自的页面 |
 | 版本管理 | Git + GitHub | 见「开发规范」 |
 
@@ -123,7 +123,9 @@ npm start          # 3. 启动服务
 | `npm run test:conflict` | 运行时间冲突判定单元测试 |
 | `npm run pack:submission` | 从 `docs/` 生成 `提交材料/` 目录（交作业用） |
 
-> 数据库文件默认位于 `data/course-selection.sqlite`，可用 `DB_FILE` 环境变量指定其他路径。
+> **默认走 PostgreSQL**：设置 `DATABASE_URL` 即启用（连接串见 `.env`，不入库）。
+> **离线/回退**：不设 `DATABASE_URL`，或显式 `DB_DRIVER=sqlite`，则使用 `data/course-selection.sqlite`。
+> 对应的 npm 脚本：`start:pg` / `init-db:pg` / `reset-db:pg`。
 
 ### 注意事项
 
