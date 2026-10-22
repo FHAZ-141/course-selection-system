@@ -46,5 +46,7 @@
 </header>
 <main class="container">
   <% if (typeof flash !== 'undefined' && flash) { %>
-    <div class="alert <%= flash.type === 'ok' ? 'alert-ok' : 'alert-error' %>"><%= flash.message %></div>
+    <%# 注意：文案必须紧跟在 class="alert alert-xxx"> 之后，
+        测试脚本用 `alert alert-(ok|error)">[^<]*` 提取，中间不能插入标签 %>
+    <div class="alert <%= flash.type === 'ok' ? 'alert-ok' : 'alert-error' %>"><%= flash.message %><% if (flash.type === 'ok' && flash.target) { %><span class="alert-meta">已写入 <%= flash.target %> · <%= flash.at %></span><% } else if (flash.type !== 'ok' && flash.detail) { %><span class="alert-meta">本次操作未生效（<%= flash.detail %>）</span><% } %></div>
   <% } %>

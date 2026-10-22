@@ -9,6 +9,7 @@
 
 const express = require('express');
 const adminService = require('../services/adminService');
+const { setFlash } = require('../utils/flash');
 const announcementService = require('../services/announcementService');
 const format = require('../utils/format');
 const { requireLogin, requireRole } = require('../middleware/auth');
@@ -157,7 +158,7 @@ router.post('/courses', async (req, res) => {
     });
   }
 
-  req.session.flash = { type: 'ok', message: result.message };
+  setFlash(req, { ok: true, message: result.message });
   return res.redirect('/admin/courses');
 });
 
@@ -198,13 +199,13 @@ router.post('/courses/:id', async (req, res, next) => {
     });
   }
 
-  req.session.flash = { type: 'ok', message: result.message };
+  setFlash(req, { ok: true, message: result.message });
   return res.redirect('/admin/courses');
 });
 
 router.post('/courses/:id/delete', async (req, res) => {
   const result = await adminService.deleteCourse(req.params.id);
-  req.session.flash = { type: result.ok ? 'ok' : 'error', message: result.message };
+  setFlash(req, { ok: result.ok, message: result.message, detail: result.code });
   res.redirect('/admin/courses');
 });
 
@@ -226,7 +227,7 @@ router.get('/semester', async (req, res) => {
 router.post('/semester', async (req, res) => {
   const semester = await adminService.getCurrentSemester();
   if (!semester) {
-    req.session.flash = { type: 'error', message: '系统未配置学期，无法保存选课窗口' };
+    setFlash(req, { ok: false, message: '系统未配置学期，无法保存选课窗口', detail: 'SEMESTER_NOT_CONFIGURED' });
     return res.redirect('/admin/semester');
   }
 
@@ -248,7 +249,7 @@ router.post('/semester', async (req, res) => {
     });
   }
 
-  req.session.flash = { type: 'ok', message: result.message };
+  setFlash(req, { ok: true, message: result.message });
   return res.redirect('/admin/semester');
 });
 
@@ -288,19 +289,19 @@ router.post('/announcements', async (req, res) => {
     });
   }
 
-  req.session.flash = { type: 'ok', message: result.message };
+  setFlash(req, { ok: true, message: result.message });
   return res.redirect('/admin/announcements');
 });
 
 router.post('/announcements/:id/delete', async (req, res) => {
   const result = await announcementService.remove(req.params.id);
-  req.session.flash = { type: result.ok ? 'ok' : 'error', message: result.message };
+  setFlash(req, { ok: result.ok, message: result.message, detail: result.code });
   res.redirect('/admin/announcements');
 });
 
 router.post('/announcements/:id/pin', async (req, res) => {
   const result = await announcementService.togglePinned(req.params.id);
-  req.session.flash = { type: result.ok ? 'ok' : 'error', message: result.message };
+  setFlash(req, { ok: result.ok, message: result.message, detail: result.code });
   res.redirect('/admin/announcements');
 });
 

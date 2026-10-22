@@ -2,6 +2,8 @@
 
 const express = require('express');
 const db = require('../db');
+const config = require('../config');
+const { setFlash } = require('../utils/flash');
 const { verifyPassword } = require('../utils/password');
 const { safeInternalPath } = require('../utils/url');
 
@@ -42,6 +44,12 @@ router.post('/login', async (req, res) => {
     grade: user.grade
   };
 
+  // 登录只建会话、不写数据库，persisted:false 避免显示「已写入云端」这种不准确回执
+  setFlash(req, {
+    ok: true,
+    message: `已登录：${user.name}（${config.roles[user.role]}）`,
+    persisted: false
+  });
   return res.redirect(next);
 });
 

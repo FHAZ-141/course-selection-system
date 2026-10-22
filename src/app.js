@@ -75,21 +75,33 @@ app.use((req, res) => {
 });
 
 // 统一错误处理
+//
+// 5xx 与 4xx 区别对待：
+//   · 4xx 是业务/客户端错误，message 本身就是给人看的中文（如"课程不存在"），原样显示
+//   · 5xx 是系统故障（数据库连不上、代码异常等），message 是英文技术信息
+//     （如 Connection terminated unexpectedly），**不能直接给学生看**
+//     → 页面只显示"稍后重试 + 错误号"，完整堆栈写进日志，凭错误号定位
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
   const status = err.status || 500;
+  const isServerError = status >= 500;
 
-  if (status >= 500) {
-    // 服务端异常：需要完整堆栈，便于排查
-    console.error('[error]', req.method, req.originalUrl, err);
+  // 错误号：同一请求的日志与页面可对应（时间戳 36 进制，够短且不易撞）
+  const errorId = `E${Date.now().toString(36).toUpperCase()}`;
+
+  if (isServerError) {
+    console.error(`[error ${errorId}]`, req.method, req.originalUrl, err);
   } else {
-    // 4xx 属于正常的客户端错误（如访问不存在的课程），只记录一行即可
     console.warn('[warn]', req.method, req.originalUrl, `-> ${status}`, err.message);
   }
 
   res.status(status).render('error', {
-    title: status >= 500 ? '服务器错误' : '请求有误',
+    title: isServerError ? '服务器错误' : '请求有误',
     code: status,
-    message: err.message || '服务器内部错误'
+    message: isServerError
+      ? `系统暂时无法处理这个请求，请稍后重试。（错误号 ${errorId}）`
+      : (err.message || '请求有误'),
+    // 写操作失败要明确告知"没生效"，避免用户以为存上了
+    isWrite: req.method !== 'GET' && req.method !== 'HEAD'
   });
 });
 

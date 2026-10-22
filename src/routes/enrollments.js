@@ -9,6 +9,7 @@
 
 const express = require('express');
 const enrollmentService = require('../services/enrollmentService');
+const { flashAndBack } = require('../utils/flash');
 const format = require('../utils/format');
 const { safeInternalPath } = require('../utils/url');
 const { requireLogin, requireRole } = require('../middleware/auth');
@@ -19,13 +20,8 @@ const router = express.Router();
 router.use(requireLogin, requireRole('student'));
 
 /** 把服务层结果转成 flash 提示，并跳回来源页 */
-function flashAndBack(req, res, result, fallback) {
-  req.session.flash = {
-    type: result.ok ? 'ok' : 'error',
-    message: result.message
-  };
-  res.redirect(safeInternalPath(req.body.back, fallback));
-}
+// 结果提示统一由 utils/flash 处理（成功会带上"已写入云端"回执）
+// 这里保留同名函数，调用点无需改动。
 
 /** 我的选课结果（§2.1-6） */
 router.get('/my', async (req, res) => {

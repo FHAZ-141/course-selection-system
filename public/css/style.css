@@ -329,6 +329,14 @@ input:focus, select:focus, textarea:focus {
 }
 .alert-error { background: var(--danger-soft); color: var(--danger); }
 
+/* 结果回执：告诉用户数据落到了哪里 / 操作是否生效 */
+.alert-meta {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
 /* ---------- 登录页 ---------- */
 .login-wrap {
   display: flex;
@@ -500,6 +508,12 @@ input:focus, select:focus, textarea:focus {
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .alert-ok { background: var(--ok-soft); color: var(--ok); }
+
+.error-hint {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--muted, #6b7280);
+}
 
 /* ============================================================
    公告通知模块
