@@ -6,8 +6,10 @@
 #  说明：
 #   · runtime 用 node（不用 Docker），符合需求 F2「不做 Docker 部署」
 #   · region 选 singapore，是 Render 离国内最近的节点
-#   · 免费计划没有持久磁盘：每次唤醒或重部署，SQLite 会被重建，
-#     所以 startCommand 里先跑 seed（幂等，有数据会跳过）
+#   · 数据库在 Neon（PostgreSQL），数据持久保留；startCommand 里的 seed 是幂等的
+#     （库里有数据就跳过），所以重启不会重置演示数据
+#   · DATABASE_URL 用 sync: false 声明：键必须在蓝图里，值只在控制台维护，
+#     这样既能防止蓝图同步把变量删掉，又不会把密码写进仓库
 #   · 健康检查指向 /health，与启动器用的是同一个端点
 # ============================================================
 

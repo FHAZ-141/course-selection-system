@@ -6,7 +6,7 @@
 
 ---
 
-## [未发布]
+## [0.3.0] - 2026-10-22
 
 ### 变更（数据库迁移，2026-10-22 已完成）
 
@@ -26,6 +26,16 @@
 | SQLite（离线） | 单元 26 + 集成 15 + 冒烟 77 = **118/118** |
 | PostgreSQL（本地） | 集成 **15 × 3 轮** + 冒烟 **77/77** |
 | PostgreSQL（线上） | 冒烟 **77/77**；本地写→线上见、线上写→本地见、重启后数据保留 均通过 |
+
+### 工程配套
+- `render.yaml` 用 `sync: false` 声明 `DATABASE_URL`：
+  键在蓝图里（防止蓝图同步把变量删掉），值只在控制台维护（不进仓库）
+- 版本号 0.2.1 → **0.3.0**；重新生成发布包 `release/course-selection-system-v0.3.0.zip`
+- 新增 `start:pg` / `init-db:pg` / `reset-db:pg`（`node --env-file=.env`，不引入 dotenv）
+
+### 发布包自检
+`v0.3.0.zip` 解压到空目录 → `npm install` → `seed` → 启动 → `/health` 返回
+`{ ok:true, db:sqlite }`，`/login` 200、首页 302，证明包自包含、可独立运行。
 
 ### 规划
 - **PostgreSQL 迁移方案定稿** `docs/dev/07-PostgreSQL迁移方案.md`
