@@ -12,9 +12,22 @@ let server = null;
 async function start() {
   await db.initSchema();
 
-  const { c: userCount } = await db.get('SELECT COUNT(*) AS c FROM user');
+  // 空库自动初始化：initSchema 只建表不写数据，
+  // 若此时放行，登录会以「密码不正确」的形式失败（实际是账号不存在），
+  // 极难排查。这里直接补一次幂等的 seed。
+  let userCount = (await db.get('SELECT COUNT(*) AS c FROM user')).c;
   if (userCount === 0) {
-    console.warn('提示：数据库中还没有数据，请先执行  npm run init-db');
+    console.log('数据库为空，正在写入演示数据…');
+    const { execFileSync } = require('node:child_process');
+    const path = require('node:path');
+    execFileSync(process.execPath, [path.join(__dirname, 'db', 'seed.js')], {
+      env: process.env,
+      stdio: 'inherit'
+    });
+    userCount = (await db.get('SELECT COUNT(*) AS c FROM user')).c;
+    if (userCount === 0) {
+      console.warn('提示：演示数据写入失败，请手动执行  npm run init-db');
+    }
   }
 
   server = app.listen(config.server.port, config.server.host, () => {

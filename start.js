@@ -159,15 +159,13 @@ function ensureDependencies() {
 
 /** 数据库检查：缺失时自动初始化 */
 function ensureDatabase() {
-  const dbFile = path.join(ROOT, 'data', 'course-selection.sqlite');
-  if (fs.existsSync(dbFile)) {
-    step('✓', '数据库已就绪');
-    return true;
-  }
-
-  step('…', '首次运行，正在初始化演示数据');
+  // 不能只看「文件是否存在」：server.js 的 initSchema 会创建空文件，
+  // 一旦先跑过 server，空库就会被误判为已就绪（登录会一直报密码错误）。
+  // 直接跑一次幂等的 seed：有数据就跳过，没数据就写入。
+  step('…', '检查数据库');
   const result = spawnSync(process.execPath, [path.join(ROOT, 'src', 'db', 'seed.js')], {
     cwd: ROOT,
+    env: process.env,
     stdio: 'inherit'
   });
 
@@ -175,7 +173,7 @@ function ensureDatabase() {
     step('✗', '数据库初始化失败');
     return false;
   }
-  step('✓', '演示数据已就绪');
+  step('✓', '数据库已就绪');
   return true;
 }
 

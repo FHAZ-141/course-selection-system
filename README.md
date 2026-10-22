@@ -79,6 +79,10 @@ Windows 下**双击 `start.bat`** 即可。启动器会自动完成：
 > macOS / Linux 可执行 `node start.js`，效果相同。
 > 只启动服务不开浏览器：`node start.js --no-browser`。
 
+> **首次运行无需手动建库**：`npm start` / `start.bat` 启动时会检查数据库，
+> 为空则自动写入演示数据（53 用户 / 33 课程）。若登录一直提示密码错误，
+> 说明库里没数据，手动执行 `npm run init-db` 即可。
+
 #### 方式二：命令行启动
 
 ```bash
