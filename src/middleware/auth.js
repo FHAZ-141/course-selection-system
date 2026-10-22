@@ -1,6 +1,7 @@
 'use strict';
 
 const config = require('../config');
+const { setFlash } = require('../utils/flash');
 
 /** 把当前登录用户、闪现提示与公共视图变量注入每次请求 */
 function attachUser(req, res, next) {
@@ -32,6 +33,14 @@ function requireLogin(req, res, next) {
   // 表单请求（包括 POST）一律跳登录页，避免用户看到裸 JSON。
   // 非 GET 请求登录后无法重放（没有对应的 GET 路由），因此跳回首页。
   const target = req.method === 'GET' ? req.originalUrl : '/';
+  // 写操作被拦要明确告知「没生效」，否则用户可能以为提交上去了
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    setFlash(req, {
+      ok: false,
+      message: '请先登录后再操作',
+      detail: 'UNAUTHENTICATED'
+    });
+  }
   return res.redirect(`/login?next=${encodeURIComponent(target)}`);
 }
 
@@ -42,7 +51,11 @@ function requireRole(...roles) {
       return res.status(403).render('error', {
         title: '无权访问',
         code: 403,
-        message: `当前角色（${config.roles[req.user.role] || req.user.role}）无权访问该页面`
+        message: `当前角色（${config.roles[req.user.role] || req.user.role}）无权访问该页面`,
+        // 写操作被拒同样要说清「没生效」；读操作无此需要
+        writeHint: (req.method === 'GET' || req.method === 'HEAD')
+          ? null
+          : '本次操作没有生效，数据未被修改。'
       });
     }
     return next();

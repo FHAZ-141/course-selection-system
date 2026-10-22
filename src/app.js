@@ -70,7 +70,11 @@ app.use((req, res) => {
   res.status(404).render('error', {
     title: '页面不存在',
     code: 404,
-    message: `未找到页面：${req.originalUrl}`
+    message: `未找到页面：${req.originalUrl}`,
+    // 写到不存在的地址同样要告知「没生效」
+    writeHint: (req.method === 'GET' || req.method === 'HEAD')
+      ? null
+      : '本次操作没有生效，数据未被修改。'
   });
 });
 
@@ -100,8 +104,13 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     message: isServerError
       ? `系统暂时无法处理这个请求，请稍后重试。（错误号 ${errorId}）`
       : (err.message || '请求有误'),
-    // 写操作失败要明确告知"没生效"，避免用户以为存上了
-    isWrite: req.method !== 'GET' && req.method !== 'HEAD'
+    // 写操作失败要明确告知「没生效」，避免用户以为存上了。
+    // 措辞按 4xx/5xx 区分：只有系统故障才该让人重试（403/404 重试也无用）。
+    writeHint: (req.method !== 'GET' && req.method !== 'HEAD')
+      ? (isServerError
+        ? '本次操作没有生效，数据未被修改。请稍后重试。'
+        : '本次操作没有生效，数据未被修改。')
+      : null
   });
 });
 
