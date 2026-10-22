@@ -110,7 +110,26 @@ async function main() {
   });
 
   // 2) 造一门用于冲击的小容量课程（容量 3，且不排课 → 不会与他人冲突）
+  // 0) 清理上一轮遗留的测试课程（支持连续多次运行）
+  const stale = await db.get("SELECT id FROM course WHERE code = 'TEST01'");
+  if (stale) {
+    await db.run('DELETE FROM enrollment WHERE course_id = ?', stale.id);
+    await db.run('DELETE FROM class_time WHERE course_id = ?', stale.id);
+    await db.run('DELETE FROM course WHERE id = ?', stale.id);
+  }
+
   const semester = await db.get('SELECT * FROM semester WHERE is_current = 1');
+
+  // 场景三会把选课窗口关掉，这里复位，保证脚本可连续运行。
+  // 注意：本文件的 nowIso() 不接受参数，必须自己算偏移。
+  const isoAt = (offsetMs) =>
+    new Date(Date.now() + offsetMs).toISOString().replace('T', ' ').slice(0, 19);
+  await db.run(
+    'UPDATE semester SET select_open_at = ?, select_close_at = ? WHERE id = ?',
+    isoAt(-7 * 24 * 3600 * 1000),
+    isoAt(14 * 24 * 3600 * 1000),
+    semester.id
+  );
   const teacher = await db.get("SELECT id FROM user WHERE role = 'teacher' ORDER BY id LIMIT 1");
   const courseId = (await db.run(
     `INSERT INTO course (code, name, teacher_id, semester_id, department, credits, capacity, location, description, status, created_at)
@@ -256,6 +275,19 @@ async function main() {
     );
   } finally {
     server.close();
+
+    // 收尾 1：恢复选课窗口（场景三会把它关掉）
+    await db.run(
+      'UPDATE semester SET select_open_at = ?, select_close_at = ? WHERE id = ?',
+      isoAt(-7 * 24 * 3600 * 1000),
+      isoAt(14 * 24 * 3600 * 1000),
+      semester.id
+    );
+
+    // 收尾 2：删掉测试课程，避免污染后续冒烟（冒烟断言课程总数为 33）
+    await db.run('DELETE FROM enrollment WHERE course_id = ?', courseId);
+    await db.run('DELETE FROM class_time WHERE course_id = ?', courseId);
+    await db.run('DELETE FROM course WHERE id = ?', courseId);
     db.close();
     try {
       fs.rmSync(TMP_DIR, { recursive: true, force: true });

@@ -12,6 +12,7 @@
  */
 
 const db = require('../db');
+const config = require('../config');
 const windowService = require('./windowService');
 const conflictService = require('./conflictService');
 const classTimeService = require('./classTimeService');
@@ -49,11 +50,21 @@ async function countWaiting(courseId) {
   )).c;
 }
 
-async function getCourseRow(courseId) {
+/**
+ * 行锁后缀（并发正确性的关键，见 docs/dev/07 第五节）：
+ *   · PostgreSQL：事务内 `SELECT ... FOR UPDATE OF c` 锁住**课程行**，
+ *     让"读余量 → 查冲突 → 写记录"串行化；只锁 course 表，不锁被 JOIN 的 user 行
+ *   · SQLite：不支持该语法，它靠 `BEGIN IMMEDIATE` 的写锁达到同样效果
+ *
+ * 锁粒度是单门课：不同课程仍可并行选课。
+ */
+const ROW_LOCK = config.db.driver === 'pg' ? ' FOR UPDATE OF c' : '';
+
+async function getCourseRow(courseId, forUpdate = false) {
   return await db.get(
     `SELECT c.*, u.name AS teacher_name
        FROM course c JOIN user u ON u.id = c.teacher_id
-      WHERE c.id = ?`,
+      WHERE c.id = ?${forUpdate ? ROW_LOCK : ''}`,
     courseId
   );
 }
@@ -151,7 +162,7 @@ async function enroll(studentId, courseId) {
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
   return await db.transaction(async () => {
-    const course = await getCourseRow(id);
+    const course = await getCourseRow(id, true);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
     const windowState = await windowService.getWindowState(
@@ -215,7 +226,7 @@ async function drop(studentId, courseId) {
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
   return await db.transaction(async () => {
-    const course = await getCourseRow(id);
+    const course = await getCourseRow(id, true);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
     const existing = await db.get(
@@ -249,7 +260,7 @@ async function cancelWaitlist(studentId, courseId) {
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
   return await db.transaction(async () => {
-    const course = await getCourseRow(id);
+    const course = await getCourseRow(id, true);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
     const existing = await db.get(
