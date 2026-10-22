@@ -1,6 +1,6 @@
 {
   "name": "course-selection-system",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "软件工程课程作业：选课系统（课程查询、选课、退课、人数限制、时间冲突检查、选课结果查询）",
   "main": "src/server.js",
