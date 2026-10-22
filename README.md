@@ -127,6 +127,9 @@ npm start          # 3. 启动服务
 > **离线/回退**：不设 `DATABASE_URL`，或显式 `DB_DRIVER=sqlite`，则使用 `data/course-selection.sqlite`。
 > 对应的 npm 脚本：`start:pg` / `init-db:pg` / `reset-db:pg`。
 
+> **健康检查**：`/health` 返回 `ok`（进程存活）、`db`（当前驱动）、`dbOk`（是否连得上库）、
+> `dbMs`（探测耗时）、`node`、`commit`。一条 `curl /health` 即可核对部署版本与数据库状态。
+
 > **线上数据是持久的**（2026-10-22 起）：不再每次部署重置。
 > 想把演示数据恢复初始状态，在本地执行 `npm run reset-db:pg`（会指向同一个云端库）。
 

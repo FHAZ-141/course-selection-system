@@ -27,7 +27,14 @@
 | PostgreSQL（本地） | 集成 **15 × 3 轮** + 冒烟 **77/77** |
 | PostgreSQL（线上） | 冒烟 **77/77**；本地写→线上见、线上写→本地见、重启后数据保留 均通过 |
 
+### 可观测性
+- `/health` 增加数据库连通性探测：`dbOk`（是否连通）、`dbMs`（探测耗时）、`dbError`（失败摘要）
+  - 原实现只证明"进程活着"，连接串失效时仍返回 200，无法用于发布验收
+  - 保留 `ok: true` 语义（进程存活），库状态单独用 `dbOk` 表达，
+    避免 Neon 空闲唤醒抖动导致平台健康检查误判重启
+
 ### 工程配套
+- 发布 GitHub Release `v0.3.0`，附 `course-selection-system-v0.3.0.zip`
 - `render.yaml` 用 `sync: false` 声明 `DATABASE_URL`：
   键在蓝图里（防止蓝图同步把变量删掉），值只在控制台维护（不进仓库）
 - 版本号 0.2.1 → **0.3.0**；重新生成发布包 `release/course-selection-system-v0.3.0.zip`
