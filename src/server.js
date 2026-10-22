@@ -1,5 +1,9 @@
 'use strict';
 
+// 先加载 .env：让 npm start / start.bat / node start.js 等所有入口
+// 都能读到 DATABASE_URL，从而连到 Neon；没有 .env 时自动保持 SQLite 离线模式。
+require('./utils/loadEnv').loadEnv();
+
 const app = require('./app');
 const config = require('./config');
 const db = require('./db');
@@ -58,5 +62,10 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 start().catch((err) => {
   console.error('启动失败：', err);
+  if (process.env.DATABASE_URL) {
+    console.error('提示：检测到 DATABASE_URL，当前尝试连接云端数据库（Neon/PostgreSQL）。');
+    console.error('      · 请检查 .env 中的连接串是否失效、Neon 实例是否唤醒、本机网络是否可达；');
+    console.error('      · 若只想离线运行，可设置环境变量 DB_DRIVER=sqlite（或临时移走 .env）。');
+  }
   process.exitCode = 1;
 });

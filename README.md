@@ -60,7 +60,21 @@
 
 - Node.js **22.x**（`engines` 已锁定；开发环境 v22.22.2，线上实测 v22.23.4）
 - **离线模式无需安装数据库服务**，也**无需任何原生编译工具链**；
-  要连云端库只需配置一个 `DATABASE_URL`
+  要连云端库只需在项目根目录放一个 `.env`（含 `DATABASE_URL`），所有启动方式都会自动读取
+
+### 数据库模式与 `.env`
+
+启动时会自动读取项目根目录的 `.env`（没有就跳过），据此决定连哪个库：
+
+| 场景 | 条件 | 实际使用 |
+| --- | --- | --- |
+| **本地连云端 Neon**（与线上同一个库） | 根目录有 `.env`，且含 `DATABASE_URL` | PostgreSQL，本地与 Render 数据实时一致 |
+| **离线开发 / 演示** | 没有 `.env`，或显式设 `DB_DRIVER=sqlite` | `data/course-selection.sqlite` |
+
+- 首次配置：把 `.env.example` 复制为 `.env`，填入 Neon 连接串（`.env` 已被 gitignore，不会入库）；
+- `npm start`、`start.bat`、`node start.js` **都会自动加载 `.env`**，不需要额外加参数；
+- 进程里显式设置的环境变量优先，例如 `DB_DRIVER=sqlite npm start` 可强制离线；
+- `npm run init-db` / `reset-db` 只作用于离线 SQLite；云端库用 `init-db:pg` / `reset-db:pg`。
 
 ### 启动步骤
 
@@ -80,15 +94,16 @@ Windows 下**双击 `start.bat`** 即可。启动器会自动完成：
 > 只启动服务不开浏览器：`node start.js --no-browser`。
 
 > **首次运行无需手动建库**：`npm start` / `start.bat` 启动时会检查数据库，
-> 为空则自动写入演示数据（53 用户 / 33 课程）。若登录一直提示密码错误，
-> 说明库里没数据，手动执行 `npm run init-db` 即可。
+> 为空则自动写入演示数据（53 用户 / 33 课程）。配了 `.env` 时补种的是**云端库**，
+> 没配时补种的是本地 SQLite。若登录一直提示密码错误，说明库里没数据，
+> 手动执行 `npm run init-db`（离线）/ `init-db:pg`（云端）即可。
 
 #### 方式二：命令行启动
 
 ```bash
 npm install        # 1. 安装依赖
-npm run init-db    # 2. 初始化数据库并写入演示数据（首次必需）
-npm start          # 3. 启动服务
+npm run init-db    # 2. 初始化【离线】数据库（仅无 .env 时需要；云端库用 init-db:pg）
+npm start          # 3. 启动服务（有 .env 则连 Neon，无则用 SQLite）
 ```
 
 启动后访问 <http://localhost:3000>。

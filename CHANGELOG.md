@@ -30,6 +30,15 @@
 - 文档：周次口径统一为「学期默认 16 周、课程排课允许 1~30」；PRG 约定补充「校验失败重新渲染」；鉴权挂载说明补充首页单路由例外
 - 代码：`/logout` 补 `requireLogin`，与「接口规范：退出需登录」一致（未登录访问改为跳登录页）
 
+### 修复（本地无法读取云端数据）
+- 根因：`.env` 只有 `start:pg` 会加载；`npm start` / 双击 `start.bat` 启动的 `src/server.js`
+  从不读取 `.env`，于是本地永远回退 SQLite，与 Render 的 Neon 库各存一份数据
+- 新增 `src/utils/loadEnv.js`（无依赖）：`.env` 只补缺失变量，显式环境变量优先；
+  `src/server.js` 与 `start.js` 启动时自动加载，无 `.env` 时保持离线可用
+- 新增 `.env.example`；`README` / `dev/04` / `dev/06` 补充「有 `.env` 连 Neon、无则 SQLite」的口径
+- 启动失败时若检测到 `DATABASE_URL`，提示检查连接串/Neon 实例/网络，或设 `DB_DRIVER=sqlite` 离线
+- 实测：本地选课 → 线上 Render 立即看到人数变化；线上退课 → 本地立即回退，双向实时一致
+
 ---
 
 ## [0.3.0] - 2026-10-22

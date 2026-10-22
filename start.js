@@ -25,6 +25,10 @@ const http = require('node:http');
 const net = require('node:net');
 const path = require('node:path');
 
+// 一键启动器也要读 .env：否则「检查数据库」会去初始化 SQLite，
+// 而真正启动的子进程却按 .env 连 Neon，两边目标不一致。
+require('./src/utils/loadEnv').loadEnv();
+
 const ROOT = __dirname;
 const SERVICE = 'course-selection-system';
 const BASE_PORT = Number(process.env.PORT) || 3000;
