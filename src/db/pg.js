@@ -73,7 +73,13 @@ function getPool() {
     max: config.db.pgPoolMax,
     // Neon 等托管 PG 要求 SSL；本地自建可设 PG_SSL=false 关闭
     ssl: process.env.PG_SSL === 'false' ? false : { rejectUnauthorized: false },
-    idleTimeoutMillis: 30000,
+    // Neon 等托管 PG 会在服务端回收长时间空闲的连接。
+    // 若本地池仍认为它可用，下一条查询就会拿到已断开的连接
+    // （报 Connection terminated unexpectedly，页面表现为 500 或连接中断）。
+    // 因此这里把空闲回收压到 10 秒，并开启 TCP keepAlive。
+    idleTimeoutMillis: 10000,
+    keepAlive: true,
+    keepAliveInitialDelayMillis: 5000,
     // Neon 免费版计算实例会在空闲 5 分钟后挂起，首次连接需等待唤醒（约 1.2 秒），
     // 这里给到 10 秒，避免唤醒期间误判为连接失败。
     connectionTimeoutMillis: 10000
@@ -168,15 +174,33 @@ async function run(sql, ...params) {
   };
 }
 
+/**
+ * 连接被意外切断时的错误特征。
+ * 这类错误重试是安全的**仅限读操作**：写操作若在提交后断开，重试可能造成重复写入。
+ */
+const TRANSIENT = /Connection terminated|ECONNRESET|connection error|Client has encountered|Client was closed|timeout exceeded/i;
+
+async function queryWithRetry(text, params, retries = 1) {
+  try {
+    return await executor().query(text, params);
+  } catch (err) {
+    if (retries > 0 && TRANSIENT.test(err.message)) {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+      return queryWithRetry(text, params, retries - 1);
+    }
+    throw err;
+  }
+}
+
 /** 取单行；无结果返回 undefined（与 SQLite 驱动的行为一致） */
 async function get(sql, ...params) {
-  const result = await executor().query(toDriverSql(sql), normalizeParams(params));
+  const result = await queryWithRetry(toDriverSql(sql), normalizeParams(params));
   return result.rows[0];
 }
 
 /** 取多行；无结果返回空数组 */
 async function all(sql, ...params) {
-  const result = await executor().query(toDriverSql(sql), normalizeParams(params));
+  const result = await queryWithRetry(toDriverSql(sql), normalizeParams(params));
   return result.rows;
 }
 
