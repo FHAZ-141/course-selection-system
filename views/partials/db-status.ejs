@@ -1,5 +1,5 @@
 <%
-  var s = (typeof dbStatus !== 'undefined' && dbStatus) ? dbStatus : { driver: 'unknown', ok: null, ms: null };
+  var s = (typeof dbStatus !== 'undefined' && dbStatus) ? dbStatus : { driver: 'unknown', ok: null, ms: null, history: [], target: null };
   var kind = s.ok === null ? 'pending'
     : (s.driver === 'pg' ? (s.ok ? 'ok' : 'down') : 'local');
   var text = s.ok === null ? '检测中'
@@ -10,4 +10,33 @@
     : (s.driver === 'pg'
       ? (s.ok ? '已连接 Neon PostgreSQL，最近一次探测延迟 ' + s.ms + ' ms' : '云端数据库连接失败')
       : '当前使用本地 SQLite，未连接云端数据库');
-%><span id="db-status" class="db-status db-status--<%= kind %>" data-driver="<%= s.driver %>" title="<%= title %>"><span class="db-status-dot"></span><span class="db-status-text"><%= text %></span></span>
+  var t = s.target || {};
+  var hist = (s.history && s.history.length) ? s.history.join(' / ') + ' ms' : '—';
+  var checked = s.checkedAt ? s.checkedAt.slice(11, 19) : '—';
+%><span class="db-status-wrap" id="db-status-wrap">
+  <span id="db-status" class="db-status db-status--<%= kind %>" data-driver="<%= s.driver %>"
+        tabindex="0" role="button" aria-haspopup="true" aria-label="数据库连接详情" title="<%= title %>">
+    <span class="db-status-dot"></span>
+    <span class="db-status-text"><%= text %></span>
+  </span>
+
+  <span class="db-status-panel" role="dialog" aria-label="数据库连接详情">
+    <span class="db-status-head">
+      <span class="db-status-title">数据库连接</span>
+      <button type="button" class="db-status-refresh" id="db-status-refresh"
+              title="立即检测延迟" aria-label="立即检测延迟">↻</button>
+    </span>
+    <span class="db-status-row"><span class="db-status-k">状态</span><span class="db-status-v" data-field="state"><%= kind === 'ok' ? '正常' : (kind === 'down' ? '离线' : (kind === 'local' ? '本地库' : '检测中')) %></span></span>
+    <span class="db-status-row"><span class="db-status-k">目标</span><span class="db-status-v" data-field="target"><%= t.label || '—' %></span></span>
+    <span class="db-status-row"><span class="db-status-k">主机</span><span class="db-status-v db-status-mono" data-field="host"><%= t.host || '—' %></span></span>
+    <span class="db-status-row"><span class="db-status-k">区域</span><span class="db-status-v" data-field="region"><%= t.region || '—' %></span></span>
+    <span class="db-status-row"><span class="db-status-k">当前延迟</span><span class="db-status-v" data-field="ms">—</span></span>
+    <span class="db-status-row"><span class="db-status-k">近 5 次</span><span class="db-status-v db-status-mono" data-field="history"><%= hist %></span></span>
+    <span class="db-status-row"><span class="db-status-k">最近检测</span><span class="db-status-v" data-field="checked"><%= checked %></span></span>
+    <span class="db-status-row"><span class="db-status-k">页面刷新</span><span class="db-status-v">每 5 秒</span></span>
+    <span class="db-status-sep"></span>
+    <span class="db-status-row"><span class="db-status-k">服务端</span><span class="db-status-v" data-field="server">—</span></span>
+    <span class="db-status-row"><span class="db-status-k">提交</span><span class="db-status-v db-status-mono" data-field="commit">—</span></span>
+    <span class="db-status-row"><span class="db-status-k">运行时长</span><span class="db-status-v" data-field="uptime">—</span></span>
+  </span>
+</span>

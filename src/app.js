@@ -5,7 +5,6 @@ const express = require('express');
 const session = require('express-session');
 
 const config = require('./config');
-const db = require('./db');
 const dbStatus = require('./utils/dbStatus');
 const { attachUser } = require('./middleware/auth');
 
@@ -37,29 +36,32 @@ app.use((req, res, next) => {
 //   db     —— 当前驱动 sqlite / pg
 //   dbOk   —— **实际执行一次 SELECT 1** 的结果，用来确认"能连上库"
 //   dbMs   —— 上述探测耗时（毫秒），可用来观察数据库延迟
+//   history / checkedAt / target / uptimeSec / probeIntervalMs
+//          —— 供页面「连接质量」详情卡展示的服务端具体情况
 //
 // 注意：ok 与 dbOk 分开是有意的。若把数据库不可用算作 ok=false，
 // Neon 免费版空闲唤醒（约 1 秒）期间的抖动可能让平台健康检查失败并触发重启。
 app.get('/health', async (req, res) => {
+  await dbStatus.probe();
+  const state = dbStatus.getState();
+
   const body = {
     ok: true,
     service: 'course-selection-system',
     time: new Date().toISOString(),
     node: process.version,
     commit: process.env.RENDER_GIT_COMMIT || null,
-    db: config.db.driver
+    uptimeSec: Math.round(process.uptime()),
+    db: state.driver,
+    dbOk: state.ok === true,
+    dbMs: state.ms,
+    checkedAt: state.checkedAt,
+    history: state.history,
+    target: state.target,
+    probeIntervalMs: dbStatus.intervalMs
   };
 
-  try {
-    const startedAt = Date.now();
-    await db.get('SELECT 1 AS ok');
-    body.dbOk = true;
-    body.dbMs = Date.now() - startedAt;
-  } catch (err) {
-    body.dbOk = false;
-    body.dbMs = null;
-    body.dbError = String(err.message).slice(0, 140);
-  }
+  if (state.ok !== true) body.dbError = state.error;
 
   res.json(body);
 });
