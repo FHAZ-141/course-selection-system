@@ -119,7 +119,7 @@
 | P3 | 并发改 `FOR UPDATE` | 半天 | **15 项并发全绿，连跑 3 次** | ✅ 已完成（PG 连跑 3 轮 15/15，SQLite 118/118） |
 | P4 | 上线 + 文档同步 | 半天 | 跨端互见 + 重启数据保留 | ✅ 已完成（线上 db=pg，四项验收通过） |
 
-**环境**：Neon Free / Singapore（ap-southeast-1）/ PostgreSQL 18.6，连接串在本地 `.env`（已 gitignore）。
+**环境**：Neon Free / Singapore（ap-southeast-1）/ PostgreSQL 18.6，连接串在本地 `.env`（已 gitignore）；连接串已于 2026-10-22 轮换（`.env` 与 Render 两处同步）。
 **本地命令**：`npm run init-db:pg` / `start:pg` / `reset-db:pg`；离线开发用 `DB_DRIVER=sqlite`。
 
 **执行记录**：[`docs/dev/08-迁移执行记录.md`](docs/dev/08-迁移执行记录.md)（含安全基线、回滚命令、中断恢复手册）
