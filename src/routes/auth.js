@@ -5,6 +5,7 @@ const db = require('../db');
 const config = require('../config');
 const { setFlash } = require('../utils/flash');
 const { verifyPassword } = require('../utils/password');
+const { requireLogin } = require('../middleware/auth');
 const { safeInternalPath } = require('../utils/url');
 
 const router = express.Router();
@@ -57,7 +58,7 @@ function logout(req, res) {
   req.session.destroy(() => res.redirect('/login'));
 }
 
-router.post('/logout', logout);
-router.get('/logout', logout);
+router.post('/logout', requireLogin, logout);
+router.get('/logout', requireLogin, logout);
 
 module.exports = router;

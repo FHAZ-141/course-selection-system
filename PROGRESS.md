@@ -14,13 +14,16 @@
 | 最新提交 | 以 `git log --oneline -1` 为准 |
 | 版本线 | `v0.0.1`（初始化）→ `v0.1.0`（骨架）→ `v0.2.0`（全功能）→ `v0.2.1`（文档 + 启动器）→ `v0.3.0`（PostgreSQL 迁移）→ **`v0.3.1`（操作回执 + 错误页）** |
 | 已打 git tag | `v0.0.1` / `v0.1.0` / `v0.2.0` / `v0.2.1` / `v0.3.0`（均已推送） |
-| 待发布 | `v0.3.1`：本地包已生成，**tag 与 GitHub Release 尚未发布**（按要求暂缓） |
-| 提交总数 | 53 |
+| 待发布 | `v0.3.1`：本地包已生成（`release/` 被 `.gitignore` 排除，仓库内不含 ZIP），**tag 与 GitHub Release 尚未发布**（按要求暂缓） |
+| 提交总数 | 63 |
 | 远端仓库 | <https://github.com/FHAZ-141/course-selection-system>（**公开**） |
-| 代码规模 | 4,795 行（`src` 27 个 JS / 3,308 行 + `views` 21 个 EJS / 1,487 行） |
-| 文档规模 | 8,328 行 / 29 个 Markdown（含开发者文档与模块说明，不含 `提交材料/`） |
+| 代码规模 | 4,912 行（`src` 28 个 JS / 3,420 行 + `views` 21 个 EJS / 1,492 行） |
+| 文档规模 | 8,846 行 / 31 个 Markdown（含开发者文档与模块说明，不含 `提交材料/`） |
 | 自动化测试 | SQLite 模式 **118 项**（冒烟 77 + 并发 15 + 冲突单元 26）；PostgreSQL 模式冒烟 77 + 并发 15×3 轮 |
 | 交付文档进度 | **14 / 14**（文档 D0~D6 全部完成；图表 U1~U7 全部完成，另有 3 张辅助图） |
+
+> 规模数字统计于 2026-10-22 的 v0.3.1 一致性修复提交。此后每有新提交这些数字都会增长，
+> 判断最新值请以 `git rev-list --count HEAD` 与实际文件统计为准，不要把它当长期常量。
 
 ---
 
@@ -32,10 +35,10 @@
 | --- | --- | --- |
 | 入口 | `src/server.js`、`src/app.js`、`src/config.js` | 启动、装配、配置 |
 | 数据层（5） | `db/index.js`（驱动分发）、`db/sqlite.js`、`db/pg.js`、`schema.sql` + `schema.pg.sql`、`seed.js` | 双驱动、两套 schema、两库通用的演示数据 |
-| 服务层（9） | `courseService`、`classTimeService`、`conflictService`、`windowService`、`enrollmentService`、`announcementService`、`adminService`、`teacherService`、`password` | 业务规则全部集中在此层 |
-| 路由层（8） | `index`、`auth`、`courses`、`enrollments`、`announcements`、`admin`、`teacher`、`_placeholder` | 取参→调服务→渲染 |
+| 服务层（8） | `courseService`、`classTimeService`、`conflictService`、`windowService`、`enrollmentService`、`announcementService`、`adminService`、`teacherService` | 业务规则全部集中在此层 |
+| 路由层（8 个文件，挂载 7 个） | `index`、`auth`、`courses`、`enrollments`、`announcements`、`admin`、`teacher`、`_placeholder`（占位，未挂载） | 取参→调服务→渲染 |
 | 中间件 | `middleware/auth.js` | 登录、角色鉴权、flash 提示 |
-| 工具 | `utils/format.js`、`utils/url.js`、`utils/password.js` | 格式化、路径安全、口令 |
+| 工具 | `utils/format.js`、`utils/url.js`、`utils/password.js`、`utils/flash.js` | 格式化、路径安全、口令、操作回执 |
 | 视图 | `views/` 21 个 EJS + `public/css/style.css` + `public/js/admin-course.js` | 学生端 4 + 教师端 4 + 管理端 6 + 公共 |
 
 **功能覆盖**：需求基线 `§2.1` 的 11 项全部实现（6 项核心功能 + 候补队列 + 公告 + 选课窗口配置 + 并发压测脚本 + 教师端冲突提示）。
@@ -73,9 +76,12 @@
 > `activity-promote-waitlist`（D3 补位活动）、`ui-sitemap`（D3 界面导航）。
 
 ### 2.4 开发者文档（面向维护，非交付物）
-`docs/dev/` 共 7 份：架构与代码地图、数据库设计说明、接口与页面规范、运行与维护手册、
-新增功能标准流程、模块文档索引、6 个业务模块设计文档（课程查询 / 选课与退课 / 时间冲突检查 /
-公告通知 / 管理后台 / 教师端）。
+`docs/dev/` 共 11 个 Markdown：索引 `README.md` + 10 篇正文（架构与代码地图、数据库设计说明、
+接口与页面规范、运行与维护手册、新增功能标准流程、部署指南、PostgreSQL 迁移方案、
+迁移执行记录、连接池稳定性修复、需求执行追踪），另有 `modules/` 下 6 篇业务模块设计文档
+（课程查询 / 选课与退课 / 时间冲突检查 / 公告通知 / 管理后台 / 教师端）+ 模块索引。
+
+> **DV 编号对应**：`docs/dev/01~10` 依次为 DV1~DV10（DV10 = 需求执行追踪，2026-10-22 新增）。
 
 ### 2.5 一键启动与发布包（v0.3.1）
 
@@ -88,8 +94,8 @@
 **行为约定**：端口占用自动顺延（最多 10 个）；已有本服务在跑则只开浏览器不重复启动；
 `--no-browser` 只起服务；`--skip-install` 跳过自动装依赖；Ctrl+C 信号转发，不留孤儿进程。
 
-**发布包**：`release/course-selection-system-v0.3.1.zip`（不含 `node_modules`、`data/`、`.git`，
-解压后双击 `start.bat` 会自动装依赖并建库）。
+**发布包**：`release/course-selection-system-v0.3.1.zip`（本地生成，`.gitignore` 排除，不入库；
+不含 `node_modules`、`data/`、`.git`，解压后双击 `start.bat` 会自动装依赖并建库）。
 
 ### 2.6 提交材料目录
 
@@ -97,7 +103,7 @@
 | --- | --- |
 | 位置 | 仓库根目录 `提交材料/` |
 | 生成方式 | `npm run pack:submission`（脚本 `scripts/pack-submission.js`） |
-| 内容 | 已产出的文档（4 份）+ 图表（4 组，每组 .mmd/.png/.svg）+ 自动生成的 README 索引 |
+| 内容 | 已产出的文档（8 份，含生成的 README 索引）+ 图表（10 组，每组 .mmd/.png/.svg） |
 | 为什么用脚本 | `docs/` 是唯一来源；手工复制两份迟早不一致，每次全量重建 |
 
 **注意**：改了 `docs/` 下的文档后，要重新执行 `npm run pack:submission`，
@@ -115,11 +121,11 @@
 | --- | --- | --- |
 | 危险陈述 | 是否有会导致数据丢失的操作建议 | 修掉 2 处「`start:prod` 必须带 `--reset`」（迁移后会清空线上数据） |
 | 版本标注 | 文档头的"对应代码版本" | D1~D6 统一标注**当前代码版本**；不引用会过期的提交号 |
-| 规模数字 | 提交数、代码行数、文档行数、测试数 | 全部按实测更新（53 提交 / 4,795 行代码 / 26+15+77 项测试） |
+| 规模数字 | 提交数、代码行数、文档行数、测试数 | 全部按实测更新（63 提交 / 4,912 行代码 / 26+15+77 项测试；文档 31 份 / 8,846 行） |
 | 环境要求 | Node 版本、依赖个数、账号范围 | Node 22.x、5 个依赖、T1002~T1012 / 学号至 2024010140 |
 | 结构描述 | 数据层文件、schema 份数 | 改为分发器 + 双驱动；schema 由 1 份变 2 份 |
 | 操作流程 | 改表、备份、部署 | 改为"两套 schema 都要改"、PG 用 Backup & Restore、部署去 `--reset` |
-| 链接 | 38 个 Markdown 的内部链接 | **0 处断链** |
+| 链接 | 51 个 Markdown 的相对链接 | **0 处断链** |
 
 > 结论：文档与系统一致。**下次改代码若涉及数据库、部署或测试数量，
 > 这几处是最容易忘更的地方**——建议照上表逐项扫一遍。
