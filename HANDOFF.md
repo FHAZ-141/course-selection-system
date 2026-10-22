@@ -7,15 +7,17 @@
 
 ## 一、30 秒读懂这个项目
 
-高校选课系统，课程作业项目。**已全部完成并上线**。
+高校选课系统，课程作业项目。**已全部完成并上线，当前版本 v4.0.0（Release v4.0）**。
 
 | 项 | 值 |
 | --- | --- |
 | 线上演示 | <https://course-selection-system-8xwy.onrender.com>（`admin` / `123456`） |
 | 仓库 | <https://github.com/FHAZ-141/course-selection-system> |
 | 技术栈 | Node.js + Express + **PostgreSQL 18（Neon）/ SQLite 双驱动** + EJS，无前端构建 |
+| 数据源 | 本地与线上共用 Neon；根目录 `.env` 自动加载（`src/utils/loadEnv.js`） |
 | 交付物 | 14 / 14 全部完成（7 份文档 + 7 张 UML 图，另 3 张辅助图） |
 | 测试 | SQLite 模式 118 项（冒烟 77 + 并发 15 + 单元 26）；PostgreSQL 模式冒烟 77 + 并发 15×3 轮，全绿 |
+| 开发标准 | [`docs/dev/11-开发标准与协作约定.md`](docs/dev/11-开发标准与协作约定.md)（新功能先看它） |
 
 ---
 
@@ -46,6 +48,7 @@
 | 改演示数据 | `src/db/seed.js`，改完重建数据：`npm run reset-db`（离线）/ `npm run reset-db:pg`（云端） |
 | 重新出图 | `docs/diagrams/*.mmd` → `python docs/diagrams/render_mermaid.py <mmd> docs/diagrams` |
 | 部署相关 | `render.yaml` + `docs/dev/06-部署指南.md` |
+| 版本 / 发布 / 提交规范 | `docs/dev/11-开发标准与协作约定.md` |
 | 看整体进度 | `PROGRESS.md`（最全的台账） |
 
 ---
@@ -109,8 +112,7 @@ npm run smoke           # 77 项，需服务在跑
 2. **文档转 Word/PDF**——需求 F4 提过"可导出"；`提交材料/` 目前是 Markdown
 3. **UI 自动化**（D5 的 GAP-01）——Playwright 覆盖 5 条主流程
 4. **行覆盖率**（GAP-02）——接 `c8`，服务层目标 ≥ 70%
-5. **发布 v0.3.1**——代码已是 v0.3.1（操作回执 + 错误页），本地包已打好（`release/` 不入库）；
-   打 tag `v0.3.1` 并挂 GitHub Release 即可（v0.3.0 的 Release 已发布）
+5. **发布 v4.0.0**——✅ 已完成（tag `v4.0.0` + GitHub Release `v4.0`，Render 自动部署到同一提交）
 
 ---
 
@@ -120,8 +122,9 @@ npm run smoke           # 77 项，需服务在跑
 
 1. `HANDOFF.md`（本文）—— 5 分钟建立全局
 2. `PROGRESS.md` —— 当前状态、待办、环境信息
-3. `docs/06-项目总结报告.md` 第六节 —— 踩过的坑与教训
-4. 需要改代码时再看 `docs/dev/README.md` 选对应的开发者文档
+3. `docs/dev/11-开发标准与协作约定.md` —— 动手前先看版本/提交/测试/发布规则
+4. `docs/06-项目总结报告.md` 第六节 —— 踩过的坑与教训
+5. 需要改代码时再看 `docs/dev/README.md` 选对应的开发者文档
 
 **约定**：代码与文档同一次提交；改了 `docs/` 下的文档要 `npm run pack:submission`。
 
@@ -131,7 +134,8 @@ npm run smoke           # 77 项，需服务在跑
 
 | 项 | 值 |
 | --- | --- |
-| Node.js | 本地 v22.22.2；`engines` 与线上均为 **22.x**（线上实测 v22.23.4） |
+| Node.js | 本地 v22.22.2；`engines` 与线上均为 **22.x**（线上实测 v22.23.4；本地也用 v24.22.0 跑通过） |
 | 依赖 | express / express-session / ejs / node-sqlite3-wasm / pg（全纯 JS） |
+| 数据库 | 本地根目录 `.env` 含 Neon 连接串（不入库，模板 `.env.example`）；无 `.env` 时自动用 SQLite |
 | 图表渲染 | 需本机有 Chrome 或 Edge（`docs/diagrams/render_mermaid.py` 无头渲染） |
 | 代理 | 本机走系统代理（端口不固定，见 `env | grep -i proxy`），curl 访问线上需加 `--noproxy '*'` |
