@@ -105,7 +105,7 @@
 
 ## 三、未完成（待办）
 
-### 3.0 PostgreSQL 迁移（进行中，方案已定稿）
+### 3.0 PostgreSQL 迁移（✅ 已完成）
 
 **目标**：本地与线上共用一个云数据库（Neon / Singapore），数据实时一致。
 **方案文档**：[`docs/dev/07-PostgreSQL迁移方案.md`](docs/dev/07-PostgreSQL迁移方案.md)
@@ -117,7 +117,7 @@
 | P1 | 8 服务 + 7 路由异步化 | 1 天 | **118 项在 SQLite 全绿** | ✅ 已完成（118/118 + 线上 77/77） |
 | P2 | 切 Neon，修方言 | 半天 | **77 项冒烟在 PG 全绿** | ✅ 已完成（77/77，7 类方言差异已修） |
 | P3 | 并发改 `FOR UPDATE` | 半天 | **15 项并发全绿，连跑 3 次** | ✅ 已完成（PG 连跑 3 轮 15/15，SQLite 118/118） |
-| P4 | 上线 + 文档同步 | 半天 | 跨端互见 + 重启数据保留 | ⬜ 待做（下一步） |
+| P4 | 上线 + 文档同步 | 半天 | 跨端互见 + 重启数据保留 | ✅ 已完成（线上 db=pg，四项验收通过） |
 
 **环境**：Neon Free / Singapore（ap-southeast-1）/ PostgreSQL 18.6，连接串在本地 `.env`（已 gitignore）。
 **本地命令**：`npm run init-db:pg` / `start:pg` / `reset-db:pg`；离线开发用 `DB_DRIVER=sqlite`。

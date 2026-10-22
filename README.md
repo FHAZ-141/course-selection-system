@@ -127,6 +127,9 @@ npm start          # 3. 启动服务
 > **离线/回退**：不设 `DATABASE_URL`，或显式 `DB_DRIVER=sqlite`，则使用 `data/course-selection.sqlite`。
 > 对应的 npm 脚本：`start:pg` / `init-db:pg` / `reset-db:pg`。
 
+> **线上数据是持久的**（2026-10-22 起）：不再每次部署重置。
+> 想把演示数据恢复初始状态，在本地执行 `npm run reset-db:pg`（会指向同一个云端库）。
+
 ### 注意事项
 
 - 本项目为**单进程**应用：服务运行期间请勿同时执行 `npm run init-db`，否则会提示数据库被占用。
