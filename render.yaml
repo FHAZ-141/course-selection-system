@@ -32,3 +32,9 @@ services:
       # 会话签名密钥，由 Render 自动生成随机值
       - key: SESSION_SECRET
         generateValue: true
+
+      # PostgreSQL 连接串。sync: false = 键属于蓝图、值只在控制台填（不进仓库）。
+      # 必须在此声明：蓝图同步会清理「不在蓝图里的环境变量」，
+      # 缺了这一项 DATABASE_URL 会被静默删除，线上会回退到 SQLite。
+      - key: DATABASE_URL
+        sync: false
