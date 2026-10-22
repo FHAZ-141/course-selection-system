@@ -5,6 +5,7 @@ const express = require('express');
 const session = require('express-session');
 
 const config = require('./config');
+const db = require('./db');
 const { attachUser } = require('./middleware/auth');
 
 const app = express();
@@ -21,19 +22,39 @@ app.use(session(config.session));
 app.use(attachUser);
 
 // 健康检查（并发压测脚本、部署健康探测、发布核对使用）
-// 除 ok 外的字段都是**可观测信息**，用于确认"线上到底跑的是哪个提交、哪个 Node、哪个驱动"：
+//
+// 字段含义：
+//   ok     —— 进程存活（不包含数据库状态，避免 Neon 唤醒抖动导致平台误判重启）
 //   node   —— 运行时版本（排查版本漂移）
 //   commit —— Render 自动注入的部署提交（本地运行为 null）
-//   db     —— 当前数据库驱动 sqlite / pg（迁移期间快速核对）
-app.get('/health', (req, res) => {
-  res.json({
+//   db     —— 当前驱动 sqlite / pg
+//   dbOk   —— **实际执行一次 SELECT 1** 的结果，用来确认"能连上库"
+//   dbMs   —— 上述探测耗时（毫秒），可用来观察数据库延迟
+//
+// 注意：ok 与 dbOk 分开是有意的。若把数据库不可用算作 ok=false，
+// Neon 免费版空闲唤醒（约 1 秒）期间的抖动可能让平台健康检查失败并触发重启。
+app.get('/health', async (req, res) => {
+  const body = {
     ok: true,
     service: 'course-selection-system',
     time: new Date().toISOString(),
     node: process.version,
     commit: process.env.RENDER_GIT_COMMIT || null,
     db: config.db.driver
-  });
+  };
+
+  try {
+    const startedAt = Date.now();
+    await db.get('SELECT 1 AS ok');
+    body.dbOk = true;
+    body.dbMs = Date.now() - startedAt;
+  } catch (err) {
+    body.dbOk = false;
+    body.dbMs = null;
+    body.dbError = String(err.message).slice(0, 140);
+  }
+
+  res.json(body);
 });
 
 app.use('/', require('./routes/index'));
