@@ -1,7 +1,7 @@
 # 交接文档（HANDOFF）
 
 > **给下一个会话的我看的。** 换设备、换会话、隔几周回来，先读这一份。
-> 最后更新：2026-10-20
+> 最后更新：2026-10-22
 
 ---
 
@@ -13,9 +13,9 @@
 | --- | --- |
 | 线上演示 | <https://course-selection-system-8xwy.onrender.com>（`admin` / `123456`） |
 | 仓库 | <https://github.com/FHAZ-141/course-selection-system> |
-| 技术栈 | Node.js + Express + SQLite（纯 WASM 驱动）+ EJS，无前端构建 |
+| 技术栈 | Node.js + Express + **PostgreSQL 18（Neon）/ SQLite 双驱动** + EJS，无前端构建 |
 | 交付物 | 14 / 14 全部完成（7 份文档 + 7 张 UML 图，另 3 张辅助图） |
-| 测试 | 118 项，本地与线上各跑过，全绿 |
+| 测试 | SQLite 模式 118 项（冒烟 77 + 并发 15 + 单元 26）；PostgreSQL 模式冒烟 77 + 并发 15×3 轮，全绿 |
 
 ---
 
@@ -41,19 +41,19 @@
 | --- | --- |
 | 加一个功能 | `docs/dev/05-新增功能标准流程.md`（五步） |
 | 改业务规则 | `src/services/`，改完同步 `docs/dev/modules/<模块>.md` |
-| 改表结构 | `src/db/schema.sql` + `docs/04-数据库设计文档.md` + D4 变更记录 |
+| 改表结构 | **两套 schema 都要改**：`src/db/schema.sql`（SQLite）与 `src/db/schema.pg.sql`（PostgreSQL），并同步 `docs/04-数据库设计文档.md` 与 D4 变更记录 |
 | 改页面 | `views/`，字段规范看 `docs/dev/03-接口与页面规范.md` |
-| 改演示数据 | `src/db/seed.js`，改完**必须** `npm run pack:submission` |
+| 改演示数据 | `src/db/seed.js`，改完重建数据：`npm run reset-db`（离线）/ `npm run reset-db:pg`（云端） |
 | 重新出图 | `docs/diagrams/*.mmd` → `python docs/diagrams/render_mermaid.py <mmd> docs/diagrams` |
 | 部署相关 | `render.yaml` + `docs/dev/06-部署指南.md` |
-| 看整体进度 | `PROGRESS.md`（230 行，最全的台账） |
+| 看整体进度 | `PROGRESS.md`（最全的台账） |
 
 ---
 
 ## 四、跑起来
 
 ```bash
-npm install        # 4 个纯 JS 依赖，无需编译工具链
+npm install        # 5 个纯 JS 依赖（含 pg），无需编译工具链
 npm run init-db    # 建库 + 演示数据（幂等）
 npm start          # 或双击 start.bat
 ```
@@ -74,7 +74,7 @@ npm run smoke           # 77 项，需服务在跑
 | --- | --- | --- |
 | **推送常失败** | `CONNECT tunnel failed, response 502`，能连续失败 20 次 | 无解，**重试**（间隔 15~20 秒，通常几十次内会成功）。推之前可先 `curl -o /dev/null -w '%{http_code}' https://github.com` 探路，`000` 就是不通 |
 | **Render 授权两步** | 装了 GitHub App，仓库列表仍为空 | 「安装 App」≠「账号 OAuth」。且装完要重新进 `/select-repo?type=blueprint` 才刷新 |
-| **部署后数据不更新** | 代码新了、数据还是旧的 | `start:prod` 必须带 `--reset`，否则幂等 seed 会跳过 |
+| **不要给 `start:prod` 加 `--reset`** | 2026-10-22 迁移后数据在云端，加 `--reset` 会在每次部署时**清空线上数据** | `start:prod` 保持幂等（有数据就跳过）；需要重置时手动执行 `npm run reset-db:pg` |
 | **Mermaid 输出非法 SVG** | 浏览器打开报 `tag mismatch: br` | `htmlLabels:false` + 源码 HTML 转义（脚本已改好） |
 | **图里出现 `&lt;`** | 标签里的 `<` 被转义 | 用中文「不足」代替比较符 |
 | **曲线/尺寸失控** | 图 3000px 宽或 2700px 高，A4 放不下 | 合并同类判定节点、移除边界分支，控制在 1800px 内 |
@@ -95,8 +95,9 @@ npm run smoke           # 77 项，需服务在跑
 | 当前状态 | **P0~P4 全部完成**，线上 `db=pg`，跨端互见与重启保留已验证 |
 | 铁律 | P3 并发验证不过就不上线 |
 
-**接手注意**：迁移期间 `src/db/index.js` 会变成驱动分发器，真正的实现在 `pg.js` / `sqlite.js`。
-改数据层前先读 DV7 第四节（接口形状不变，但调用要 `await`）。
+**接手注意**：`src/db/index.js` 现在只是驱动分发器，真正的实现在 `pg.js` / `sqlite.js`。
+接口形状两库一致（`run` / `get` / `all` / `transaction` / `exec` / `initSchema` / `close`），
+但**全部是异步的**——业务代码必须 `await`。细节见 DV7 第四节与 DV8 的 5 类异步化陷阱。
 
 ---
 
@@ -108,7 +109,7 @@ npm run smoke           # 77 项，需服务在跑
 2. **文档转 Word/PDF**——需求 F4 提过"可导出"；`提交材料/` 目前是 Markdown
 3. **UI 自动化**（D5 的 GAP-01）——Playwright 覆盖 5 条主流程
 4. **行覆盖率**（GAP-02）——接 `c8`，服务层目标 ≥ 70%
-5. **打包新 Release**——代码比 v0.2.1 多了不少（演示数据扩充、部署适配、登录页改动）
+5. ~~打包新 Release~~ → 已完成（`v0.3.0`，含 2.6 MB 发布包）
 
 ---
 
@@ -129,7 +130,7 @@ npm run smoke           # 77 项，需服务在跑
 
 | 项 | 值 |
 | --- | --- |
-| Node.js | v24.22.0（`engines` 要求 ≥ 20） |
-| 依赖 | express / express-session / ejs / node-sqlite3-wasm（全纯 JS） |
+| Node.js | 本地 v22.22.2；`engines` 与线上均为 **22.x**（线上实测 v22.23.4） |
+| 依赖 | express / express-session / ejs / node-sqlite3-wasm / pg（全纯 JS） |
 | 图表渲染 | 需本机有 Chrome 或 Edge（`docs/diagrams/render_mermaid.py` 无头渲染） |
-| 代理 | 本机走 `https_proxy=127.0.0.1:50277`，curl 访问线上需加 `--noproxy '*'` |
+| 代理 | 本机走系统代理（端口不固定，见 `env | grep -i proxy`），curl 访问线上需加 `--noproxy '*'` |

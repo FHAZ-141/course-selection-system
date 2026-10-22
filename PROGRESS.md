@@ -1,7 +1,7 @@
 # 项目进度台账
 
 > **用途**：记录"做到哪一步、下一步做什么、怎么接着做"，保证隔一段时间回来（或换人接手）能立即续上。
-> **最后更新**：2026-10-18 22:30
+> **最后更新**：2026-10-22 17:30
 > **维护约定**：每完成一个交付物就更新本文件，与代码同一次提交。
 
 ---
@@ -10,26 +10,26 @@
 
 | 项目 | 状态 |
 | --- | --- |
-| 代码版本 | **v0.3.0**（功能完整 + 一键启动器，可运行） |
+| 代码版本 | **v0.3.0**（功能完整 + 数据库迁移到 PostgreSQL） |
 | 最新提交 | 以 `git log --oneline -1` 为准 |
-| 标签 | `v0.0.1`（初始化）、`v0.1.0`（骨架）、`v0.2.0`（全功能）、`v0.3.0`（启动器 + Release 包） |
-| 提交总数 | 14 |
+| 标签 | `v0.0.1`（初始化）、`v0.1.0`（骨架）、`v0.2.0`（全功能）、`v0.2.1`（文档 + 一键启动器）、**`v0.3.0`（PostgreSQL 迁移）** |
+| 提交总数 | 53 |
 | 远端仓库 | <https://github.com/FHAZ-141/course-selection-system>（**公开**） |
-| 代码规模 | 5,770 行（`src` 25 个 JS + `views` 21 个 EJS + CSS + SQL + 测试脚本） |
-| 文档规模 | 3,015 行 / 17 个 Markdown |
-| 自动化测试 | **118 项全部通过**（冒烟 77 + 并发 15 + 冲突单元 26） |
+| 代码规模 | 4,795 行（`src` 27 个 JS / 3,308 行 + `views` 21 个 EJS / 1,487 行） |
+| 文档规模 | 8,328 行 / 29 个 Markdown（含开发者文档与模块说明，不含 `提交材料/`） |
+| 自动化测试 | SQLite 模式 **118 项**（冒烟 77 + 并发 15 + 冲突单元 26）；PostgreSQL 模式冒烟 77 + 并发 15×3 轮 |
 | 交付文档进度 | **14 / 14**（文档 D0~D6 全部完成；图表 U1~U7 全部完成，另有 3 张辅助图） |
 
 ---
 
 ## 二、已完成
 
-### 2.1 代码（v0.2.0，功能完整）
+### 2.1 代码（v0.3.0，功能完整）
 
 | 分层 | 文件 | 说明 |
 | --- | --- | --- |
 | 入口 | `src/server.js`、`src/app.js`、`src/config.js` | 启动、装配、配置 |
-| 数据层 | `src/db/index.js`、`schema.sql`、`seed.js` | 连接与事务、7 张表、演示数据 |
+| 数据层（5） | `db/index.js`（驱动分发）、`db/sqlite.js`、`db/pg.js`、`schema.sql` + `schema.pg.sql`、`seed.js` | 双驱动、两套 schema、两库通用的演示数据 |
 | 服务层（9） | `courseService`、`classTimeService`、`conflictService`、`windowService`、`enrollmentService`、`announcementService`、`adminService`、`teacherService`、`password` | 业务规则全部集中在此层 |
 | 路由层（8） | `index`、`auth`、`courses`、`enrollments`、`announcements`、`admin`、`teacher`、`_placeholder` | 取参→调服务→渲染 |
 | 中间件 | `middleware/auth.js` | 登录、角色鉴权、flash 提示 |
