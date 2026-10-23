@@ -27,6 +27,7 @@
         <% } %>
         <% if (currentUser.role === 'admin') { %>
           <a href="/admin" class="<%= activePath.startsWith('/admin') ? 'active' : '' %>">管理后台</a>
+          <a href="/admin/accounts" class="<%= activePath.startsWith('/admin/accounts') ? 'active' : '' %>">账号管理</a>
         <% } %>
         <a href="/announcements" class="<%= activePath.startsWith('/announcements') ? 'active' : '' %>">公告</a>
       </nav>

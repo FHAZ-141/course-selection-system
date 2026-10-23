@@ -1,0 +1,55 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">账号管理</h1>
+    <p class="page-sub"><span class="muted">查询、注册、编辑和维护系统账号</span></p>
+  </div>
+  <div class="head-actions">
+    <a class="btn btn-primary btn-sm" href="/admin/accounts/new">+ 注册账号</a>
+  </div>
+</div>
+
+<section class="panel">
+  <form method="get" action="/admin/accounts" class="form-grid">
+    <label class="field">
+      <span>搜索账号、姓名或院系</span>
+      <input type="search" name="q" value="<%= query %>" placeholder="学号 / 工号 / 姓名">
+    </label>
+    <label class="field">
+      <span>角色</span>
+      <select name="role">
+        <option value="">全部角色</option>
+        <option value="student" <%= role === 'student' ? 'selected' : '' %>>学生</option>
+        <option value="teacher" <%= role === 'teacher' ? 'selected' : '' %>>教师</option>
+        <option value="admin" <%= role === 'admin' ? 'selected' : '' %>>管理员</option>
+      </select>
+    </label>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">筛选</button><a class="btn" href="/admin/accounts">清除</a></div>
+  </form>
+</section>
+
+<section class="panel panel-gap">
+  <% if (accounts.length === 0) { %>
+    <p class="empty">没有符合条件的账号。</p>
+  <% } else { %>
+    <table class="table">
+      <thead><tr><th>账号</th><th>姓名</th><th>角色</th><th>院系</th><th class="col-num">年级</th><th>创建时间</th><th class="col-actions">操作</th></tr></thead>
+      <tbody>
+        <% accounts.forEach(function (account) { %>
+          <tr>
+            <td><code><%= account.username %></code></td>
+            <td><%= account.name %></td>
+            <td><span class="badge badge-<%= account.role %>"><%= roles[account.role] %></span></td>
+            <td class="muted"><%= account.department || '—' %></td>
+            <td class="col-num muted"><%= account.grade || '—' %></td>
+            <td class="muted"><%= account.created_at %></td>
+            <td class="col-actions"><a class="btn btn-sm" href="/admin/accounts/<%= account.id %>/edit">编辑</a></td>
+          </tr>
+        <% }); %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>

@@ -15,6 +15,7 @@
 
 const db = require('../db');
 const config = require('../config');
+const { hashPassword } = require('../utils/password');
 
 function nowIso() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -26,6 +27,16 @@ function ok(code, message, data = null) {
 
 function fail(code, message, data = null) {
   return { ok: false, code, message, data };
+}
+
+/** 数据库唯一约束冲突（PG 23505 / SQLite UNIQUE）→ 业务错误，避免并发下 500 */
+function isUniqueViolation(err) {
+  return Boolean(err && (err.code === '23505' || /UNIQUE constraint failed/i.test(String(err.message || ''))));
+}
+
+/** 外键约束冲突（PG 23503 / SQLite FOREIGN KEY）→ 账号仍被业务数据引用 */
+function isForeignKeyViolation(err) {
+  return Boolean(err && (err.code === '23503' || /FOREIGN KEY constraint failed/i.test(String(err.message || ''))));
 }
 
 /** 把表单值统一成数组（qs 在单值时给字符串、多值时给数组） */
@@ -369,6 +380,174 @@ async function overview(semesterId) {
   };
 }
 
+// ---------------------------------------------------------------- 账号管理
+
+const ACCOUNT_ROLES = new Set(['student', 'teacher', 'admin']);
+
+function validateAccount(input, { requirePassword = false } = {}) {
+  const username = String(input.username || '').trim();
+  const name = String(input.name || '').trim();
+  const role = String(input.role || '').trim();
+  const department = String(input.department || '').trim();
+  const gradeText = String(input.grade || '').trim();
+  const password = String(input.password || '');
+
+  if (!/^[A-Za-z0-9_-]{3,20}$/.test(username)) {
+    return fail('ACCOUNT_USERNAME_INVALID', '账号需为 3~20 位字母、数字、下划线或连字符');
+  }
+  if (!name || name.length > 50) return fail('ACCOUNT_NAME_INVALID', '姓名不能为空且不能超过 50 字');
+  if (!ACCOUNT_ROLES.has(role)) return fail('ACCOUNT_ROLE_INVALID', '请选择有效的账号角色');
+  if (department.length > 80) return fail('ACCOUNT_DEPARTMENT_INVALID', '院系名称不能超过 80 字');
+  let grade = null;
+  if (role === 'student' && gradeText) {
+    grade = Number(gradeText);
+    if (!Number.isInteger(grade) || grade < 1 || grade > 8) {
+      return fail('ACCOUNT_GRADE_INVALID', '年级需为 1~8 的整数');
+    }
+  }
+  if (requirePassword || password) {
+    if (password.length < 6 || password.length > 128) {
+      return fail('ACCOUNT_PASSWORD_INVALID', '初始密码需为 6~128 个字符');
+    }
+  }
+  return { ok: true, data: { username, name, role, department: department || null, grade: role === 'student' ? grade : null, password } };
+}
+
+async function listAccounts({ query = '', role = '' } = {}) {
+  const term = String(query || '').trim();
+  const selectedRole = ACCOUNT_ROLES.has(role) ? role : '';
+  return await db.all(
+    `SELECT id, username, name, role, department, grade, created_at
+       FROM user
+      WHERE (? = '' OR username LIKE ? OR name LIKE ? OR COALESCE(department, '') LIKE ?)
+        AND (? = '' OR role = ?)
+      ORDER BY CASE role WHEN 'admin' THEN 0 WHEN 'teacher' THEN 1 ELSE 2 END, username`,
+    term, `%${term}%`, `%${term}%`, `%${term}%`, selectedRole, selectedRole
+  );
+}
+
+async function getAccount(accountId) {
+  const id = Number(accountId);
+  if (!Number.isInteger(id) || id <= 0) return null;
+  return await db.get(
+    'SELECT id, username, name, role, department, grade, created_at FROM user WHERE id = ?',
+    id
+  );
+}
+
+async function createAccount(input) {
+  const checked = validateAccount(input, { requirePassword: true });
+  if (!checked.ok) return checked;
+  const account = checked.data;
+  if (await db.get('SELECT id FROM user WHERE username = ?', account.username)) {
+    return fail('ACCOUNT_USERNAME_TAKEN', '该账号已被使用');
+  }
+  const { salt, hash } = hashPassword(account.password);
+  try {
+    await db.run(
+      `INSERT INTO user (username, password_hash, password_salt, name, role, department, grade, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      account.username, hash, salt, account.name, account.role, account.department, account.grade, nowIso()
+    );
+  } catch (err) {
+    if (isUniqueViolation(err)) return fail('ACCOUNT_USERNAME_TAKEN', '该账号已被使用');
+    throw err;
+  }
+  return ok('ACCOUNT_CREATED', `账号 ${account.username} 已创建`);
+}
+
+async function updateAccount(input, actorId) {
+  const checked = validateAccount(input);
+  if (!checked.ok) return checked;
+  const id = Number(input.id);
+  if (!Number.isInteger(id) || id <= 0) return fail('ACCOUNT_NOT_FOUND', '账号不存在');
+  const existing = await getAccount(id);
+  if (!existing) return fail('ACCOUNT_NOT_FOUND', '账号不存在');
+  const account = checked.data;
+  if (id === Number(actorId) && account.role !== existing.role) {
+    return fail('ACCOUNT_SELF_ROLE_CHANGE', '不能在当前登录账号中修改自己的角色');
+  }
+  if (account.role !== existing.role) {
+    const references = existing.role === 'teacher'
+      ? await db.get('SELECT COUNT(*) AS c FROM course WHERE teacher_id = ?', id)
+      : existing.role === 'student'
+        ? await db.get('SELECT COUNT(*) AS c FROM enrollment WHERE student_id = ?', id)
+        : { c: 0 };
+    if (Number(references.c) > 0) {
+      return fail('ACCOUNT_ROLE_IN_USE', '该账号已有课程或选课记录，不能更改角色');
+    }
+  }
+  const duplicate = await db.get('SELECT id FROM user WHERE username = ? AND id <> ?', account.username, id);
+  if (duplicate) return fail('ACCOUNT_USERNAME_TAKEN', '该账号已被使用');
+  try {
+    await db.run(
+      'UPDATE user SET username = ?, name = ?, role = ?, department = ?, grade = ? WHERE id = ?',
+      account.username, account.name, account.role, account.department, account.grade, id
+    );
+  } catch (err) {
+    if (isUniqueViolation(err)) return fail('ACCOUNT_USERNAME_TAKEN', '该账号已被使用');
+    throw err;
+  }
+  return ok('ACCOUNT_UPDATED', `账号 ${account.username} 的资料已更新`, { id, ...account });
+}
+
+async function resetAccountPassword(accountId, password) {
+  const id = Number(accountId);
+  const account = await getAccount(id);
+  if (!account) return fail('ACCOUNT_NOT_FOUND', '账号不存在');
+  const value = String(password || '');
+  if (value.length < 6 || value.length > 128) return fail('ACCOUNT_PASSWORD_INVALID', '新密码需为 6~128 个字符');
+  const { salt, hash } = hashPassword(value);
+  await db.run('UPDATE user SET password_hash = ?, password_salt = ? WHERE id = ?', hash, salt, id);
+  return ok('ACCOUNT_PASSWORD_RESET', `账号 ${account.username} 的密码已重置`);
+}
+
+async function deleteAccount(accountId, actorId) {
+  const id = Number(accountId);
+  const account = await getAccount(id);
+  if (!account) return fail('ACCOUNT_NOT_FOUND', '账号不存在');
+  if (id === Number(actorId)) return fail('ACCOUNT_SELF_DELETE', '不能删除当前登录的管理员账号');
+  const references = await db.get(
+    `SELECT
+       (SELECT COUNT(*) FROM course WHERE teacher_id = ?) +
+       (SELECT COUNT(*) FROM enrollment WHERE student_id = ?) +
+       (SELECT COUNT(*) FROM announcement WHERE author_id = ?) AS c`,
+    id, id, id
+  );
+  if (Number(references.c) > 0) {
+    return fail('ACCOUNT_IN_USE', '该账号已关联课程、选课或公告记录，不能删除；可编辑资料或重置密码');
+  }
+  try {
+    await db.run('DELETE FROM user WHERE id = ?', id);
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      return fail('ACCOUNT_IN_USE', '该账号已关联课程、选课或公告记录，不能删除；可编辑资料或重置密码');
+    }
+    throw err;
+  }
+  return ok('ACCOUNT_DELETED', `账号 ${account.username} 已删除`);
+}
+
+/** 管理员查看课程名单与候补队列。 */
+async function getCourseEnrollmentManagement(courseId) {
+  const course = await getCourseForEdit(courseId);
+  if (!course) return null;
+  const rows = await db.all(
+    `SELECT e.id AS enrollment_id, e.student_id, e.status, e.created_at, e.waitlist_joined_at,
+            e.updated_at, u.username, u.name, u.grade, u.department
+       FROM enrollment e JOIN user u ON u.id = e.student_id
+      WHERE e.course_id = ? AND e.status IN ('enrolled', 'waiting')
+      ORDER BY CASE e.status WHEN 'enrolled' THEN 0 ELSE 1 END,
+               e.waitlist_joined_at, e.id`,
+    course.id
+  );
+  return {
+    course,
+    enrolled: rows.filter((row) => row.status === 'enrolled'),
+    waiting: rows.filter((row) => row.status === 'waiting')
+  };
+}
+
 module.exports = {
   getCurrentSemester,
   getSemesterById,
@@ -384,6 +563,13 @@ module.exports = {
   deleteCourse,
   enrollmentStats,
   overview,
+  listAccounts,
+  getAccount,
+  createAccount,
+  updateAccount,
+  resetAccountPassword,
+  deleteAccount,
+  getCourseEnrollmentManagement,
   toArray,
   weekTypes: config.weekTypes
 };

@@ -60,6 +60,7 @@
               <% } %>
             </td>
             <td class="col-actions">
+              <a class="btn btn-sm" href="/admin/courses/<%= c.id %>/enrollments">管理名单</a>
               <a class="btn btn-sm" href="/admin/courses/<%= c.id %>/edit">编辑</a>
               <form method="post" action="/admin/courses/<%= c.id %>/delete" class="inline-form"
                     onsubmit="return confirm('确定删除课程「<%= c.name %>」吗？此操作不可撤销。');">

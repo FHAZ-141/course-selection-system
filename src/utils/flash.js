@@ -53,7 +53,7 @@ function flashAndBack(req, res, result, fallback) {
     message: result.message,
     detail: result.code
   });
-  res.redirect(safeInternalPath(req.body.back, fallback));
+  res.redirect(safeInternalPath(req.body && req.body.back, fallback));
 }
 
 module.exports = { setFlash, flashAndBack, targetLabel };

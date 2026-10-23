@@ -157,18 +157,24 @@ async function promoteNext(courseId, course, now) {
  *
  * 校验顺序（R6）：窗口 → 课程状态 → 是否已选 → 时间冲突 → 余量并占用名额
  */
-async function enroll(studentId, courseId) {
+async function enroll(studentId, courseId, options = {}) {
   const id = toCourseId(courseId);
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
   return await db.transaction(async () => {
+    // 管理员代选时在事务内复查学生身份，避免“查完账号角色被改”的竞态
+    if (options.requireStudent) {
+      const student = await db.get('SELECT role FROM user WHERE id = ?', studentId);
+      if (!student || student.role !== 'student') return fail('STUDENT_NOT_FOUND', '学生账号不存在');
+    }
+
     const course = await getCourseRow(id, true);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
 
     const windowState = await windowService.getWindowState(
       await windowService.getSemesterById(course.semester_id)
     );
-    if (!windowState.open) {
+    if (!options.ignoreWindow && !windowState.open) {
       return fail('WINDOW_CLOSED', `${windowState.label}，当前不可选课`);
     }
 
@@ -216,18 +222,46 @@ async function enroll(studentId, courseId) {
   });
 }
 
+/** 管理员登记学生选课：仅豁免选课窗口，其他规则与普通选课一致。 */
+async function adminEnroll(username, courseId) {
+  const account = await db.get(
+    "SELECT id, name FROM user WHERE username = ? AND role = 'student'",
+    String(username || '').trim()
+  );
+  if (!account) return fail('STUDENT_NOT_FOUND', '未找到该学号对应的学生账号');
+
+  const result = await enroll(account.id, courseId, { ignoreWindow: true, requireStudent: true });
+  if (result.ok) {
+    result.message = `管理员调整：${account.name}（${username}）${result.message}`;
+    result.data = { ...(result.data || {}), studentId: account.id, studentName: account.name };
+  }
+  return result;
+}
+
+/** 管理员移除指定学生的已选或候补记录；拒绝非学生账号。 */
+async function adminChangeEnrollment(studentId, courseId, action) {
+  const student = await db.get("SELECT id FROM user WHERE id = ? AND role = 'student'", Number(studentId));
+  if (!student) return fail('STUDENT_NOT_FOUND', '学生账号不存在');
+  if (action === 'drop') return await drop(student.id, courseId);
+  if (action === 'cancel-waitlist') return await cancelWaitlist(student.id, courseId);
+  return fail('ACTION_INVALID', '不支持的选课管理操作');
+}
+
 /**
  * 退课（§2.1-3 / B3 / R3 / R9）
  *
  * 退课**不受选课窗口限制**；退课后触发候补自动补位。
  */
-async function drop(studentId, courseId) {
+async function drop(studentId, courseId, options = {}) {
   const id = toCourseId(courseId);
   if (!id) return fail('COURSE_NOT_FOUND', '课程不存在');
 
   return await db.transaction(async () => {
     const course = await getCourseRow(id, true);
     if (!course) return fail('COURSE_NOT_FOUND', '课程不存在');
+    if (options.expectedTeacherId && Number(course.teacher_id) !== Number(options.expectedTeacherId)) {
+      return fail('COURSE_NOT_OWNED', '你只能管理自己所授课程');
+    }
 
     const existing = await db.get(
       'SELECT * FROM enrollment WHERE student_id = ? AND course_id = ?',
@@ -325,6 +359,8 @@ async function listMyEnrollments(studentId) {
 
 module.exports = {
   enroll,
+  adminEnroll,
+  adminChangeEnrollment,
   drop,
   cancelWaitlist,
   listMyEnrollments,

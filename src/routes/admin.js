@@ -11,7 +11,9 @@ const express = require('express');
 const adminService = require('../services/adminService');
 const { setFlash } = require('../utils/flash');
 const announcementService = require('../services/announcementService');
+const enrollmentService = require('../services/enrollmentService');
 const format = require('../utils/format');
+const { flashAndBack } = require('../utils/flash');
 const { requireLogin, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -123,6 +125,94 @@ router.get('/', async (req, res) => {
   });
 });
 
+// ---------------------------------------------------------------- 账号管理
+
+router.get('/accounts', async (req, res) => {
+  const query = String(req.query.q || '').trim();
+  const role = String(req.query.role || '').trim();
+  res.render('admin/accounts', {
+    title: '账号管理',
+    accounts: await adminService.listAccounts({ query, role }),
+    query,
+    role
+  });
+});
+
+router.get('/accounts/new', (req, res) => {
+  res.render('admin/account_form', {
+    title: '注册账号',
+    mode: 'create',
+    account: { username: '', name: '', role: 'student', department: '', grade: '' },
+    error: null
+  });
+});
+
+router.post('/accounts', async (req, res) => {
+  const input = {
+    username: req.body.username,
+    name: req.body.name,
+    role: req.body.role,
+    department: req.body.department,
+    grade: req.body.grade,
+    password: req.body.password
+  };
+  const result = await adminService.createAccount(input);
+  if (!result.ok) {
+    return res.status(400).render('admin/account_form', {
+      title: '注册账号', mode: 'create', account: { ...input, password: undefined }, error: result.message
+    });
+  }
+  setFlash(req, { ok: true, message: result.message });
+  return res.redirect('/admin/accounts');
+});
+
+router.get('/accounts/:id/edit', async (req, res, next) => {
+  const account = await adminService.getAccount(req.params.id);
+  if (!account) {
+    const err = new Error('账号不存在');
+    err.status = 404;
+    return next(err);
+  }
+  return res.render('admin/account_form', {
+    title: `编辑账号 · ${account.username}`, mode: 'edit', account, error: null
+  });
+});
+
+router.post('/accounts/:id', async (req, res, next) => {
+  const input = {
+    id: req.params.id,
+    username: req.body.username,
+    name: req.body.name,
+    role: req.body.role,
+    department: req.body.department,
+    grade: req.body.grade
+  };
+  const result = await adminService.updateAccount(input, req.user.id);
+  if (!result.ok) {
+    const account = { ...input, id: Number(req.params.id) };
+    return res.status(400).render('admin/account_form', {
+      title: '编辑账号', mode: 'edit', account, error: result.message
+    });
+  }
+  if (Number(req.params.id) === Number(req.user.id)) {
+    req.session.user = { ...req.session.user, username: result.data.username, name: result.data.name };
+  }
+  setFlash(req, { ok: true, message: result.message });
+  return res.redirect('/admin/accounts');
+});
+
+router.post('/accounts/:id/password', async (req, res) => {
+  const result = await adminService.resetAccountPassword(req.params.id, req.body.password);
+  setFlash(req, { ok: result.ok, message: result.message, detail: result.code });
+  return res.redirect(`/admin/accounts/${encodeURIComponent(req.params.id)}/edit`);
+});
+
+router.post('/accounts/:id/delete', async (req, res) => {
+  const result = await adminService.deleteAccount(req.params.id, req.user.id);
+  setFlash(req, { ok: result.ok, message: result.message, detail: result.code });
+  return res.redirect('/admin/accounts');
+});
+
 // ---------------------------------------------------------------- 课程
 
 router.get('/courses', async (req, res) => {
@@ -207,6 +297,37 @@ router.post('/courses/:id/delete', async (req, res) => {
   const result = await adminService.deleteCourse(req.params.id);
   setFlash(req, { ok: result.ok, message: result.message, detail: result.code });
   res.redirect('/admin/courses');
+});
+
+router.get('/courses/:id/enrollments', async (req, res, next) => {
+  const data = await adminService.getCourseEnrollmentManagement(req.params.id);
+  if (!data) {
+    const err = new Error('课程不存在');
+    err.status = 404;
+    return next(err);
+  }
+  return res.render('admin/course_enrollments', {
+    title: `选课管理 · ${data.course.name}`,
+    course: data.course,
+    enrolled: data.enrolled,
+    waiting: data.waiting,
+    fmt: format
+  });
+});
+
+router.post('/courses/:id/enrollments', async (req, res) => {
+  const result = await enrollmentService.adminEnroll(req.body.username, req.params.id);
+  return flashAndBack(req, res, result, `/admin/courses/${encodeURIComponent(req.params.id)}/enrollments`);
+});
+
+router.post('/courses/:id/enrollments/:studentId/drop', async (req, res) => {
+  const result = await enrollmentService.adminChangeEnrollment(req.params.studentId, req.params.id, 'drop');
+  return flashAndBack(req, res, result, `/admin/courses/${encodeURIComponent(req.params.id)}/enrollments`);
+});
+
+router.post('/courses/:id/enrollments/:studentId/cancel-waitlist', async (req, res) => {
+  const result = await enrollmentService.adminChangeEnrollment(req.params.studentId, req.params.id, 'cancel-waitlist');
+  return flashAndBack(req, res, result, `/admin/courses/${encodeURIComponent(req.params.id)}/enrollments`);
 });
 
 // ---------------------------------------------------------------- 选课窗口

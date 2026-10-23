@@ -1,0 +1,56 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title"><%= mode === 'create' ? '注册账号' : '编辑账号' %></h1>
+    <p class="page-sub"><span class="muted">账号由管理员创建和维护；密码使用系统口令哈希保存</span></p>
+  </div>
+</div>
+
+<% if (error) { %><div class="alert alert-error"><%= error %></div><% } %>
+
+<section class="panel">
+  <form method="post" action="<%= mode === 'create' ? '/admin/accounts' : `/admin/accounts/${account.id}` %>" class="form">
+    <div class="form-grid">
+      <label class="field"><span>账号（学号 / 工号）</span><input name="username" value="<%= account.username || '' %>" minlength="3" maxlength="20" pattern="[A-Za-z0-9_-]{3,20}" required></label>
+      <label class="field"><span>姓名</span><input name="name" value="<%= account.name || '' %>" maxlength="50" required></label>
+      <label class="field">
+        <span>角色</span>
+        <select name="role" required>
+          <option value="student" <%= account.role === 'student' ? 'selected' : '' %>>学生</option>
+          <option value="teacher" <%= account.role === 'teacher' ? 'selected' : '' %>>教师</option>
+          <option value="admin" <%= account.role === 'admin' ? 'selected' : '' %>>管理员</option>
+        </select>
+      </label>
+      <label class="field"><span>院系（可选）</span><input name="department" value="<%= account.department || '' %>" maxlength="80"></label>
+      <label class="field"><span>年级（学生可填，1~8）</span><input type="number" name="grade" value="<%= account.grade || '' %>" min="1" max="8"></label>
+      <% if (mode === 'create') { %>
+        <label class="field"><span>初始密码（至少 6 位）</span><input type="password" name="password" minlength="6" maxlength="128" autocomplete="new-password" required></label>
+      <% } %>
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary"><%= mode === 'create' ? '创建账号' : '保存资料' %></button>
+      <a class="btn" href="/admin/accounts">返回账号列表</a>
+    </div>
+  </form>
+</section>
+
+<% if (mode === 'edit') { %>
+  <section class="panel panel-gap">
+    <h2 class="panel-title">重置密码</h2>
+    <form method="post" action="/admin/accounts/<%= account.id %>/password" class="form-grid">
+      <label class="field"><span>新密码（至少 6 位）</span><input type="password" name="password" minlength="6" maxlength="128" autocomplete="new-password" required></label>
+      <div class="form-actions"><button type="submit" class="btn btn-primary">重置密码</button></div>
+    </form>
+  </section>
+  <section class="panel panel-gap">
+    <h2 class="panel-title">删除账号</h2>
+    <p class="panel-note">仅能删除未关联课程、选课或公告的账号。当前登录的管理员不能删除自己。</p>
+    <form method="post" action="/admin/accounts/<%= account.id %>/delete" class="inline-form"
+          onsubmit="return confirm('确定删除账号「<%= account.username %>」吗？');">
+      <button type="submit" class="btn btn-danger">删除账号</button>
+    </form>
+  </section>
+<% } %>
+
+<%- include('../partials/footer') %>

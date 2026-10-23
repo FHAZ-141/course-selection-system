@@ -11,6 +11,7 @@
 const db = require('../db');
 const classTimeService = require('./classTimeService');
 const conflictService = require('./conflictService');
+const enrollmentService = require('./enrollmentService');
 
 /** 教师概览数字 */
 async function overview(teacherId) {
@@ -89,7 +90,7 @@ async function getCourseStudents(teacherId, courseId) {
   if (!course) return null;
 
   const students = await db.all(
-    `SELECT u.username, u.name, u.grade, u.department,
+    `SELECT u.id, u.username, u.name, u.grade, u.department,
             e.status, e.created_at, e.waitlist_joined_at, e.updated_at
        FROM enrollment e
        JOIN user u ON u.id = e.student_id
@@ -111,6 +112,25 @@ async function getCourseStudents(teacherId, courseId) {
   };
 }
 
+/** 教师退选自己所授课程中的一名已选学生；退课会沿用自动补位规则。 */
+async function dropStudentFromMyCourse(teacherId, courseId, studentId) {
+  const course = await db.get(
+    'SELECT id FROM course WHERE id = ? AND teacher_id = ?',
+    Number(courseId), Number(teacherId)
+  );
+  if (!course) return { ok: false, code: 'COURSE_NOT_OWNED', message: '你只能管理自己所授课程' };
+  const student = await db.get(
+    `SELECT u.id, u.name, u.username FROM enrollment e JOIN user u ON u.id = e.student_id
+      WHERE e.course_id = ? AND e.student_id = ? AND e.status = 'enrolled' AND u.role = 'student'`,
+    course.id, Number(studentId)
+  );
+  if (!student) return { ok: false, code: 'STUDENT_NOT_ENROLLED', message: '该学生当前未选中这门课程' };
+
+  const result = await enrollmentService.drop(student.id, course.id, { expectedTeacherId: teacherId });
+  if (result.ok) result.message = `已为 ${student.name}（${student.username}）办理退课。${result.message}`;
+  return result;
+}
+
 /** 我所授课程之间的时间冲突 */
 async function findMyConflicts(teacherId) {
   return await conflictService.findTeacherConflicts(teacherId);
@@ -120,5 +140,6 @@ module.exports = {
   overview,
   listMyCourses,
   getCourseStudents,
+  dropStudentFromMyCourse,
   findMyConflicts
 };

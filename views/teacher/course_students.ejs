@@ -51,6 +51,7 @@
           <th class="col-num">年级</th>
           <th>院系</th>
           <th class="col-num">选课时间</th>
+          <th class="col-actions">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -62,6 +63,12 @@
             <td class="col-num muted"><%= s.grade || '—' %></td>
             <td class="muted"><%= s.department || '—' %></td>
             <td class="col-num muted"><%= fmt.dateTime(s.created_at) %></td>
+            <td class="col-actions">
+              <form method="post" action="/teacher/courses/<%= course.id %>/students/<%= s.id %>/drop" class="inline-form"
+                    onsubmit="return confirm('确定为该学生办理退课吗？如有候补学生，系统将自动补位。');">
+                <button type="submit" class="btn btn-sm btn-danger">办理退课</button>
+              </form>
+            </td>
           </tr>
         <% }); %>
       </tbody>

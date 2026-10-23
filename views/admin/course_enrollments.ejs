@@ -1,0 +1,63 @@
+<%- include('../partials/header') %>
+
+<div class="page-head">
+  <div>
+    <h1 class="page-title">选课名单管理 <code class="title-code"><%= course.code %></code></h1>
+    <p class="page-sub"><span><%= course.name %></span><span class="dot">·</span><span class="muted">容量 <%= course.capacity %></span><span class="dot">·</span><span class="muted">已选 <%= enrolled.length %></span></p>
+  </div>
+  <div class="head-actions"><a class="btn btn-sm" href="/admin/courses">返回课程管理</a></div>
+</div>
+
+<section class="panel">
+  <h2 class="panel-title">为学生办理选课</h2>
+  <p class="panel-note">此操作不受选课窗口限制；仍校验课程状态、时间冲突、课程容量和候补队列上限。名额已满时会按规则加入候补。</p>
+  <form method="post" action="/admin/courses/<%= course.id %>/enrollments" class="form-grid">
+    <label class="field"><span>学生学号</span><input name="username" inputmode="numeric" required placeholder="输入已注册的学生学号"></label>
+    <div class="form-actions"><button type="submit" class="btn btn-primary">办理选课</button></div>
+  </form>
+</section>
+
+<section class="panel panel-gap">
+  <h2 class="panel-title">已选学生（<%= enrolled.length %> 人）</h2>
+  <% if (!enrolled.length) { %><p class="empty">当前没有已选学生。</p><% } else { %>
+    <table class="table">
+      <thead><tr><th>学号</th><th>姓名</th><th>年级</th><th>院系</th><th>选课时间</th><th class="col-actions">操作</th></tr></thead>
+      <tbody><% enrolled.forEach(function (student) { %>
+        <tr>
+          <td><code><%= student.username %></code></td><td><%= student.name %></td>
+          <td><%= student.grade || '—' %></td><td class="muted"><%= student.department || '—' %></td>
+          <td class="muted"><%= fmt.dateTime(student.created_at) %></td>
+          <td class="col-actions">
+            <form method="post" action="/admin/courses/<%= course.id %>/enrollments/<%= student.student_id %>/drop" class="inline-form"
+                  onsubmit="return confirm('确定为该学生退选这门课程吗？系统可能自动补位候补学生。');">
+              <button type="submit" class="btn btn-sm btn-danger">退课</button>
+            </form>
+          </td>
+        </tr>
+      <% }); %></tbody>
+    </table>
+  <% } %>
+</section>
+
+<section class="panel panel-gap">
+  <h2 class="panel-title">候补队列（<%= waiting.length %> 人）</h2>
+  <% if (!waiting.length) { %><p class="empty">当前没有候补学生。</p><% } else { %>
+    <table class="table">
+      <thead><tr><th>位次</th><th>学号</th><th>姓名</th><th>进入候补时间</th><th class="col-actions">操作</th></tr></thead>
+      <tbody><% waiting.forEach(function (student, index) { %>
+        <tr>
+          <td>第 <%= index + 1 %> 位</td><td><code><%= student.username %></code></td><td><%= student.name %></td>
+          <td class="muted"><%= fmt.dateTime(student.waitlist_joined_at || student.updated_at) %></td>
+          <td class="col-actions">
+            <form method="post" action="/admin/courses/<%= course.id %>/enrollments/<%= student.student_id %>/cancel-waitlist" class="inline-form"
+                  onsubmit="return confirm('确定让该学生退出这门课程的候补队列吗？');">
+              <button type="submit" class="btn btn-sm btn-danger">移出候补</button>
+            </form>
+          </td>
+        </tr>
+      <% }); %></tbody>
+    </table>
+  <% } %>
+</section>
+
+<%- include('../partials/footer') %>

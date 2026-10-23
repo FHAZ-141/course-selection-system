@@ -10,6 +10,7 @@
 const express = require('express');
 const teacherService = require('../services/teacherService');
 const format = require('../utils/format');
+const { flashAndBack } = require('../utils/flash');
 const { requireLogin, requireRole } = require('../middleware/auth');
 
 const router = express.Router();
@@ -59,6 +60,25 @@ router.get('/courses/:id/students', async (req, res, next) => {
     waiting: data.waiting,
     fmt: format
   });
+});
+
+/** 为自己所授课程中的已选学生办理退课；可能触发候补自动补位。 */
+router.post('/courses/:courseId/students/:studentId/drop', async (req, res, next) => {
+  const result = await teacherService.dropStudentFromMyCourse(
+    req.user.id, req.params.courseId, req.params.studentId
+  );
+  if (result.code === 'COURSE_NOT_OWNED') {
+    const course = await require('../db').get('SELECT id FROM course WHERE id = ?', Number(req.params.courseId));
+    if (!course) {
+      const err = new Error('课程不存在');
+      err.status = 404;
+      return next(err);
+    }
+    const err = new Error('你只能管理自己所授课程的选课名单');
+    err.status = 403;
+    return next(err);
+  }
+  return flashAndBack(req, res, result, `/teacher/courses/${encodeURIComponent(req.params.courseId)}/students`);
 });
 
 /** 授课时间冲突提示 */
